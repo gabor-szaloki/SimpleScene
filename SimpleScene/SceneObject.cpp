@@ -51,7 +51,7 @@ void SceneObject::Draw(std::shared_ptr<DX::DeviceResources> deviceResources)
 		0
 		);
 
-	// Send the constant buffer to the graphics device.
+	// Send the constant buffers to the graphics device.
 	context->VSSetConstantBuffers(
 		0,
 		1,
@@ -71,24 +71,73 @@ void SceneObject::Draw(std::shared_ptr<DX::DeviceResources> deviceResources)
 		m_constantBuffer.GetAddressOf()
 		);
 
-	// Setup the raster description which will determine how and what polygons will be drawn.
-	D3D11_RASTERIZER_DESC rasterDesc;
-	rasterDesc.AntialiasedLineEnable = false;
-	rasterDesc.CullMode = D3D11_CULL_BACK;
-	rasterDesc.DepthBias = 0;
-	rasterDesc.DepthBiasClamp = 0.0f;
-	rasterDesc.DepthClipEnable = true;
-	rasterDesc.FillMode = D3D11_FILL_SOLID;
-	rasterDesc.FrontCounterClockwise = false;
-	rasterDesc.MultisampleEnable = false;
-	rasterDesc.ScissorEnable = false;
-	rasterDesc.SlopeScaledDepthBias = 0.0f;
+	context->RSSetState(m_drawingRenderState.Get());
 
-	// Create the rasterizer state from the description we just filled out.
-	ID3D11RasterizerState* rasterState;
-	deviceResources->GetD3DDevice()->CreateRasterizerState(&rasterDesc, &rasterState);
+	// Draw the objects.
+	context->DrawIndexed(
+		m_indexCount,
+		0,
+		0
+		);
+}
 
-	context->RSSetState(rasterState);
+void SceneObject::DrawDepthMap(std::shared_ptr<DX::DeviceResources> deviceResources)
+{
+	auto context = deviceResources->GetD3DDeviceContext();
+
+	context->UpdateSubresource(
+		m_constantBuffer.Get(),
+		0,
+		NULL,
+		&m_constantBufferData,
+		0,
+		0
+		);
+
+	// Each vertex is one instance of the VertexPositionNormal struct.
+	UINT stride = sizeof(VertexPositionNormal);
+	UINT offset = 0;
+	context->IASetVertexBuffers(
+		0,
+		1,
+		m_vertexBuffer.GetAddressOf(),
+		&stride,
+		&offset
+		);
+
+	context->IASetIndexBuffer(
+		m_indexBuffer.Get(),
+		DXGI_FORMAT_R16_UINT, // Each index is one 16-bit unsigned integer (short).
+		0
+		);
+
+	context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+	context->IASetInputLayout(m_inputLayout.Get());
+
+	// Attach our vertex shader.
+	context->VSSetShader(
+		m_depthVertexShader.Get(),
+		nullptr,
+		0
+		);
+
+	context->VSSetConstantBuffers(
+		0,
+		1,
+		m_constantBuffer.GetAddressOf()
+		);
+
+	// Attach our pixel shader.
+	ID3D11PixelShader* nullPS = nullptr;
+	context->PSSetShader(
+		//m_depthPixelShader.Get(),
+		nullPS,
+		nullptr,
+		0
+		);
+
+	context->RSSetState(m_shadowRenderState.Get());
 
 	// Draw the objects.
 	context->DrawIndexed(
@@ -128,6 +177,20 @@ void SceneObject::LoadVS(
 		);
 }
 
+void SceneObject::LoadDepthVS(
+	std::shared_ptr<DX::DeviceResources> deviceResources,
+	const std::vector<byte>& fileData)
+{
+	DX::ThrowIfFailed(
+		deviceResources->GetD3DDevice()->CreateVertexShader(
+			&fileData[0],
+			fileData.size(),
+			nullptr,
+			&m_depthVertexShader
+			)
+		);
+}
+
 void SceneObject::LoadPS(
 	std::shared_ptr<DX::DeviceResources> deviceResources,
 	const std::vector<byte>& fileData)
@@ -138,6 +201,51 @@ void SceneObject::LoadPS(
 			fileData.size(),
 			nullptr,
 			&m_pixelShader
+			)
+		);
+}
+
+void SceneObject::LoadDepthPS(
+	std::shared_ptr<DX::DeviceResources> deviceResources,
+	const std::vector<byte>& fileData)
+{
+	DX::ThrowIfFailed(
+		deviceResources->GetD3DDevice()->CreatePixelShader(
+			&fileData[0],
+			fileData.size(),
+			nullptr,
+			&m_depthPixelShader
+			)
+		);
+}
+
+void SceneObject::LoadRasterStates(std::shared_ptr<DX::DeviceResources> deviceResources)
+{
+	auto pD3DDevice = deviceResources->GetD3DDevice();
+
+	D3D11_RASTERIZER_DESC drawingRenderStateDesc;
+	ZeroMemory(&drawingRenderStateDesc, sizeof(D3D11_RASTERIZER_DESC));
+	drawingRenderStateDesc.CullMode = D3D11_CULL_BACK;
+	drawingRenderStateDesc.FillMode = D3D11_FILL_SOLID;
+	drawingRenderStateDesc.DepthClipEnable = true; // Feature level 9_1 requires DepthClipEnable == true
+	
+	DX::ThrowIfFailed(
+		pD3DDevice->CreateRasterizerState(
+			&drawingRenderStateDesc,
+			&m_drawingRenderState
+			)
+		);
+
+	D3D11_RASTERIZER_DESC shadowRenderStateDesc;
+	ZeroMemory(&shadowRenderStateDesc, sizeof(D3D11_RASTERIZER_DESC));
+	shadowRenderStateDesc.CullMode = D3D11_CULL_FRONT;
+	shadowRenderStateDesc.FillMode = D3D11_FILL_SOLID;
+	shadowRenderStateDesc.DepthClipEnable = true;
+
+	DX::ThrowIfFailed(
+		pD3DDevice->CreateRasterizerState(
+			&shadowRenderStateDesc,
+			&m_shadowRenderState
 			)
 		);
 }

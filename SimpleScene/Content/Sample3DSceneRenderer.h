@@ -6,6 +6,7 @@
 
 #include "SceneObject.h"
 #include "PointLight.h"
+#include "Camera.h"
 
 namespace SimpleScene
 {
@@ -19,6 +20,8 @@ namespace SimpleScene
 		void ReleaseDeviceDependentResources();
 		void Update(DX::StepTimer const& timer);
 		void Render();
+		void RenderShadowMap();
+		void RenderSceneWithShadows();
 		void StartTracking();
 		void TrackingUpdate(float positionX);
 		void StopTracking();
@@ -32,11 +35,25 @@ namespace SimpleScene
 		// Cached pointer to device resources.
 		std::shared_ptr<DX::DeviceResources> m_deviceResources;
 
+		// Shadow map resources
+		float m_shadowMapDimension = 1024.f;
+		Microsoft::WRL::ComPtr<ID3D11Texture2D>          m_shadowMap;
+		Microsoft::WRL::ComPtr<ID3D11DepthStencilView>   m_shadowDepthView;
+		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_shadowResourceView;
+		Microsoft::WRL::ComPtr<ID3D11SamplerState>       m_comparisonSampler;
+		Microsoft::WRL::ComPtr<ID3D11SamplerState>       m_linearSampler;
+		D3D11_VIEWPORT                                   m_shadowViewport;
+
 		// Vector for scene objects
 		std::vector<SceneObject*> m_sceneObjects;
 
 		// Light
 		std::shared_ptr<PointLight> m_light;
+
+		// Camera
+		//std::shared_ptr<Camera> m_camera;
+		XMFLOAT4X4 m_view;
+		XMFLOAT4X4 m_projection;
 
 		// Variables used with the rendering loop.
 		bool	m_loadingComplete;

@@ -20,6 +20,13 @@ namespace SimpleScene
 		DirectX::XMFLOAT4 cameraPosition;
 	};
 
+	struct ViewProjectionConstantBuffer
+	{
+		DirectX::XMFLOAT4X4 view;
+		DirectX::XMFLOAT4X4 projection;
+		DirectX::XMFLOAT4   pos;
+	};
+
 	// Used to send per-vertex data to the vertex shader.
 	struct VertexPositionColor
 	{

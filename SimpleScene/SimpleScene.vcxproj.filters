@@ -82,6 +82,9 @@
     <ClCompile Include="Room.cpp">
       <Filter>Content</Filter>
     </ClCompile>
+    <ClCompile Include="Camera.cpp">
+      <Filter>Content</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="App.h" />
@@ -101,6 +104,9 @@
       <Filter>Content</Filter>
     </ClInclude>
     <ClInclude Include="Room.h">
+      <Filter>Content</Filter>
+    </ClInclude>
+    <ClInclude Include="Camera.h">
       <Filter>Content</Filter>
     </ClInclude>
   </ItemGroup>
@@ -123,6 +129,12 @@
       <Filter>Content</Filter>
     </FxCompile>
     <FxCompile Include="CustomPixelShader.hlsl">
+      <Filter>Content</Filter>
+    </FxCompile>
+    <FxCompile Include="ShadowVertexShader.hlsl">
+      <Filter>Content</Filter>
+    </FxCompile>
+    <FxCompile Include="ShadowPixelShader.hlsl">
       <Filter>Content</Filter>
     </FxCompile>
   </ItemGroup>
