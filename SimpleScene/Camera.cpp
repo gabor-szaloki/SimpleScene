@@ -12,13 +12,6 @@ Camera::Camera(XMFLOAT4 eye, XMFLOAT4 at, XMFLOAT4 up,
 	this->aspectRatio = outputSize.Width / outputSize.Height;
 	this->fov = 70.0f * XM_PI / 180.0f;
 
-	// This is a simple example of change that can be made when the app is in
-	// portrait or snapped view.
-	if (aspectRatio < 1.0f)
-	{
-		this->fov *= 2.0f;
-	}
-
 	this->nearClippingPane = 0.01f;
 	this->farClippingPane = 100.0f;
 
@@ -41,18 +34,12 @@ XMMATRIX Camera::getView()
 
 XMMATRIX Camera::getProjection()
 {
-	// This sample makes use of a right-handed coordinate system using row-major matrices.
 	XMMATRIX perspectiveMatrix = XMMatrixPerspectiveFovRH(
 		fov,
 		aspectRatio,
 		nearClippingPane,
 		farClippingPane);
 
-	// Note that the OrientationTransform3D matrix is post-multiplied here
-	// in order to correctly orient the scene to match the display orientation.
-	// This post-multiplication step is required for any draw calls that are
-	// made to the swap chain render target. For draw calls to other targets,
-	// this transform should not be applied.
 	return XMMatrixTranspose(perspectiveMatrix * XMLoadFloat4x4(&sceneOrientation));
 }
 
@@ -107,8 +94,6 @@ void Camera::Update(DX::StepTimer const& timer, std::shared_ptr<DX::DeviceResour
 	XMVECTOR newEye = getEye() += this->getMovementDir() * this->movementSpeed * timer.GetElapsedSeconds();
 	XMStoreFloat4(&this->eye, newEye);
 }
-
-
 
 Camera::~Camera()
 {

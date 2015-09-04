@@ -63,16 +63,6 @@ void SceneRenderer::Update(DX::StepTimer const& timer)
 	{
 		XMStoreFloat4(&object->m_constantBufferData.cameraPosition, m_camera->getEye());
 	}
-
-	/*if (!m_tracking)
-	{
-		// Convert degrees to radians, then convert seconds to rotation angle
-		float radiansPerSecond = XMConvertToRadians(m_degreesPerSecond);
-		double totalRotation = timer.GetTotalSeconds() * radiansPerSecond;
-		float radians = static_cast<float>(fmod(totalRotation, XM_2PI));
-
-		Rotate(radians);
-	}*/
 }
 
 // Renders one frame using the vertex and pixel shaders.
@@ -208,7 +198,7 @@ void SceneRenderer::CreateDeviceDependentResources()
 		}
 	});
 
-	// Once both shaders are loaded, create the mesh.
+	// Once shaders are loaded, create the mesh.
 	auto createSceneObjectsTask = (createPSTask && createVSTask && createDepthVSTask).then([this, cube]() {
 		for (auto object : m_sceneObjects)
 		{
@@ -216,6 +206,7 @@ void SceneRenderer::CreateDeviceDependentResources()
 		}
 	});
 
+	// Initializing resources needed for shadow mapping
 	auto createShadowMapResources = createSceneObjectsTask.then([this]() {
 		auto pD3DDevice = m_deviceResources->GetD3DDevice();
 
@@ -337,7 +328,7 @@ void SceneRenderer::CreateDeviceDependentResources()
 
 	});
 
-	// Once the objects and the shadow map are loaded, the objects are ready to be rendered.
+	// Once the objects and the shadow map are loaded, the scene is ready to be rendered.
 	createShadowMapResources.then([this]() {
 		m_loadingComplete = true;
 	});

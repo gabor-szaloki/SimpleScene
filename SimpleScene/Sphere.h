@@ -1,7 +1,6 @@
 #pragma once
 #include "SceneObject.h"
-class Sphere :
-	public SceneObject
+class Sphere : public SceneObject
 {
 public:
 	Sphere();

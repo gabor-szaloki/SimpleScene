@@ -129,7 +129,6 @@ void SceneObject::DrawDepthMap(std::shared_ptr<DX::DeviceResources> deviceResour
 	// Attach our pixel shader.
 	ID3D11PixelShader* nullPS = nullptr;
 	context->PSSetShader(
-		//m_depthPixelShader.Get(),
 		nullPS,
 		nullptr,
 		0

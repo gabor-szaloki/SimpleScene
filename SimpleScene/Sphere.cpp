@@ -55,14 +55,6 @@ void Sphere::GenerateMesh(std::shared_ptr<DX::DeviceResources> deviceResources)
 		}
 	}
 
-	//int verticesCount = verticesVector.size();
-	//static VertexPositionNormal* vertices = new VertexPositionNormal[verticesCount];
-	//int indicesCount = indicesVector.size();
-	//static unsigned short* indices = new unsigned short[indicesCount];
-
-	//std::copy(verticesVector.begin(), verticesVector.end(), vertices);
-	//std::copy(indicesVector.begin(), indicesVector.end(), indices);
-
 	VertexPositionNormal* vertices = &verticesVector[0];
 	unsigned short* indices = &indicesVector[0];
 
@@ -93,8 +85,7 @@ void Sphere::GenerateMesh(std::shared_ptr<DX::DeviceResources> deviceResources)
 			&indexBufferData,
 			&m_indexBuffer
 			)
-		);
-	
+		);	
 }
 
 Sphere::~Sphere()

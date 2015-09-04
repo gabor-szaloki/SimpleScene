@@ -52,7 +52,7 @@ float4 main(PixelShaderInput input) : SV_TARGET
 		// This is an approximation of epsilon * tan(acos(saturate(NdotL))):
 		float margin = acos(saturate(NdotL));
 		// The offset can be slightly smaller with smoother shadow edges.
-		float epsilon = 0.00001 / margin;
+		float epsilon = 0.000006 / margin;
 		// Clamp epsilon to a fixed range so it doesn't go overboard.
 		epsilon = clamp(epsilon, 0, 0.1);
 
