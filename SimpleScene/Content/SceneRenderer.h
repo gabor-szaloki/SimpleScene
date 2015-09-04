@@ -22,14 +22,6 @@ namespace SimpleScene
 		void Render();
 		void RenderShadowMap();
 		void RenderSceneWithShadows();
-		void StartTracking();
-		void TrackingUpdate(float positionX);
-		void StopTracking();
-		bool IsTracking() { return m_tracking; }
-
-
-	private:
-		void Rotate(float radians);
 
 	private:
 		// Cached pointer to device resources.

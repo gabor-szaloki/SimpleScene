@@ -44,7 +44,7 @@ float4 main(PixelShaderInput input) : SV_TARGET
 	// light before doing any shadow work.
 	if ((saturate(shadowTexCoords.x) == shadowTexCoords.x) &&
 		(saturate(shadowTexCoords.y) == shadowTexCoords.y) &&
-		(pixelDepth > 0))
+		(pixelDepth > 0) && (pixelDepth < 1))
 	{
 		// Use an offset value to mitigate shadow artifacts due to imprecise 
 		// floating-point values (shadow acne).
@@ -78,15 +78,16 @@ float4 main(PixelShaderInput input) : SV_TARGET
 		}
 	}
 
-	return float4(input.color * (ambient + DplusS(N, L, NdotL, input.view, distance)), 1.f);
+	float4 finalColor = float4(input.color * (ambient + DplusS(N, L, NdotL, input.view, distance)), 1.f);
+	return finalColor;
 }
 
 // Performs very basic Phong lighting for example purposes.
 float3 DplusS(float3 N, float3 L, float NdotL, float3 view, float distance)
 {
-	const float3 Kdiffuse = float3(.5f, .5f, .4f);
-	const float3 Kspecular = float3(.2f, .2f, .3f);
-	const float exponent = 3.f;
+	const float3 Kdiffuse = float3(.8f, .8f, .8f);
+	const float3 Kspecular = float3(.2f, .2f, .2f);
+	const float exponent = 6.f;
 
 	// Compute the diffuse coefficient.
 	float diffuseConst = saturate(NdotL);
