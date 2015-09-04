@@ -53,9 +53,10 @@ float4 main(PixelShaderInput input) : SV_TARGET
 		// This is an approximation of epsilon * tan(acos(saturate(NdotL))):
 		float margin = acos(saturate(NdotL));
 		// The offset can be slightly smaller with smoother shadow edges.
-		float epsilon = 0.0005 / margin;
+		float epsilon = 0.00001 / margin;
 		// Clamp epsilon to a fixed range so it doesn't go overboard.
 		epsilon = clamp(epsilon, 0, 0.1);
+		//epsilon = 0.0;
 
 		// Use the SampleCmpLevelZero Texture2D method (or SampleCmp) to sample from 
 		// the shadow map, just as you would with Direct3D feature level 10_0 and
@@ -135,7 +136,7 @@ float4 ComputeIllumination(float3 vLightTS, float3 vViewTS, float3 vNormalWS, fl
 	float4 cSpecular = pow(saturate(NdotH), shininess) * specularColor * specularPower;
 
 	// Composite the final color:
-	float4 cFinalColor = (cAmbient + cDiffuse) * cBaseColor + cSpecular;
+	float4 cFinalColor = cAmbient + (cDiffuse * cBaseColor) + cSpecular;
 
 	return cFinalColor;
 }
