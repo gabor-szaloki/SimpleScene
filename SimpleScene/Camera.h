@@ -30,7 +30,7 @@ public:
 	inline float getRoll() { return 0.f; }
 
 	void Update(DX::StepTimer const& timer,
-		const std::shared_ptr<DX::DeviceResources>& deviceResources);
+		std::shared_ptr<DX::DeviceResources>& deviceResources);
 
 	~Camera();
 
@@ -49,6 +49,6 @@ private:
 	XMFLOAT4X4 sceneOrientation;
 
 	void ProcessInput(DX::StepTimer const& timer,
-		const std::shared_ptr<DX::DeviceResources>& deviceResources);
+		std::shared_ptr<DX::DeviceResources>& deviceResources);
 };
 

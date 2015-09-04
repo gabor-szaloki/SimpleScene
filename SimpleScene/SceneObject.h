@@ -25,10 +25,6 @@ public:
 	virtual void LoadPS(
 		std::shared_ptr<DX::DeviceResources> deviceResources,
 		const std::vector<byte>& fileData);
-	virtual void LoadDepthPS(
-		std::shared_ptr<DX::DeviceResources> deviceResources,
-		const std::vector<byte>& fileData);
-	virtual void LoadRasterStates(std::shared_ptr<DX::DeviceResources> deviceResources);
 	virtual void LoadCB(
 		std::shared_ptr<DX::DeviceResources> deviceResources);
 	virtual void GenerateMesh(std::shared_ptr<DX::DeviceResources> deviceResources) = 0;
@@ -45,10 +41,7 @@ protected:
 	Microsoft::WRL::ComPtr<ID3D11VertexShader>	     m_vertexShader;
 	Microsoft::WRL::ComPtr<ID3D11PixelShader>	     m_pixelShader;
 	Microsoft::WRL::ComPtr<ID3D11VertexShader>	     m_depthVertexShader;
-	Microsoft::WRL::ComPtr<ID3D11PixelShader>	     m_depthPixelShader;
 	Microsoft::WRL::ComPtr<ID3D11Buffer>		     m_constantBuffer;
-	Microsoft::WRL::ComPtr<ID3D11RasterizerState>    m_shadowRenderState;
-	Microsoft::WRL::ComPtr<ID3D11RasterizerState>    m_drawingRenderState;
 
 	// System resources for geometry.
 	uint32	m_indexCount;

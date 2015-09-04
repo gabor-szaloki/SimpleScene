@@ -70,9 +70,7 @@ void SceneObject::Draw(std::shared_ptr<DX::DeviceResources> deviceResources)
 		1,
 		m_constantBuffer.GetAddressOf()
 		);
-
-	context->RSSetState(m_drawingRenderState.Get());
-
+	
 	// Draw the objects.
 	context->DrawIndexed(
 		m_indexCount,
@@ -136,9 +134,7 @@ void SceneObject::DrawDepthMap(std::shared_ptr<DX::DeviceResources> deviceResour
 		nullptr,
 		0
 		);
-
-	context->RSSetState(m_shadowRenderState.Get());
-
+	
 	// Draw the objects.
 	context->DrawIndexed(
 		m_indexCount,
@@ -201,51 +197,6 @@ void SceneObject::LoadPS(
 			fileData.size(),
 			nullptr,
 			&m_pixelShader
-			)
-		);
-}
-
-void SceneObject::LoadDepthPS(
-	std::shared_ptr<DX::DeviceResources> deviceResources,
-	const std::vector<byte>& fileData)
-{
-	DX::ThrowIfFailed(
-		deviceResources->GetD3DDevice()->CreatePixelShader(
-			&fileData[0],
-			fileData.size(),
-			nullptr,
-			&m_depthPixelShader
-			)
-		);
-}
-
-void SceneObject::LoadRasterStates(std::shared_ptr<DX::DeviceResources> deviceResources)
-{
-	auto pD3DDevice = deviceResources->GetD3DDevice();
-
-	D3D11_RASTERIZER_DESC drawingRenderStateDesc;
-	ZeroMemory(&drawingRenderStateDesc, sizeof(D3D11_RASTERIZER_DESC));
-	drawingRenderStateDesc.CullMode = D3D11_CULL_BACK;
-	drawingRenderStateDesc.FillMode = D3D11_FILL_SOLID;
-	drawingRenderStateDesc.DepthClipEnable = true; // Feature level 9_1 requires DepthClipEnable == true
-	
-	DX::ThrowIfFailed(
-		pD3DDevice->CreateRasterizerState(
-			&drawingRenderStateDesc,
-			&m_drawingRenderState
-			)
-		);
-
-	D3D11_RASTERIZER_DESC shadowRenderStateDesc;
-	ZeroMemory(&shadowRenderStateDesc, sizeof(D3D11_RASTERIZER_DESC));
-	shadowRenderStateDesc.CullMode = D3D11_CULL_FRONT;
-	shadowRenderStateDesc.FillMode = D3D11_FILL_SOLID;
-	shadowRenderStateDesc.DepthClipEnable = true;
-
-	DX::ThrowIfFailed(
-		pD3DDevice->CreateRasterizerState(
-			&shadowRenderStateDesc,
-			&m_shadowRenderState
 			)
 		);
 }

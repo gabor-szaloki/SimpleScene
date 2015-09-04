@@ -13,7 +13,6 @@ Texture2D shadowMap : register(t0);
 SamplerComparisonState shadowSampler : register(s0);
 
 float3 DplusS(float3 N, float3 L, float NdotL, float3 view, float distance);
-float4 ComputeIllumination(float3 vLightTS, float3 vViewTS, float3 vNormalWS, float distance);
 
 // Draw a shadow on top of an interpolated color.
 //
@@ -58,10 +57,6 @@ float4 main(PixelShaderInput input) : SV_TARGET
 		epsilon = clamp(epsilon, 0, 0.1);
 		//epsilon = 0.0;
 
-		// Use the SampleCmpLevelZero Texture2D method (or SampleCmp) to sample from 
-		// the shadow map, just as you would with Direct3D feature level 10_0 and
-		// higher.  Feature level 9_1 only supports LessOrEqual, which returns 0 if
-		// the pixel is in the shadow.
 		lighting = float(shadowMap.SampleCmpLevelZero(
 			shadowSampler,
 			shadowTexCoords,
@@ -72,6 +67,7 @@ float4 main(PixelShaderInput input) : SV_TARGET
 		if (lighting == 0.f)
 		{
 			return float4(input.color * ambient, 1.f);
+			//return float4(1, 0, 0, 1);
 		}
 		else if (lighting < 1.0f)
 		{
@@ -83,8 +79,6 @@ float4 main(PixelShaderInput input) : SV_TARGET
 	}
 
 	return float4(input.color * (ambient + DplusS(N, L, NdotL, input.view, distance)), 1.f);
-	//float4 finalColor = ComputeIllumination(L, input.view, N, distance);
-	//return finalColor;
 }
 
 // Performs very basic Phong lighting for example purposes.
@@ -98,7 +92,7 @@ float3 DplusS(float3 N, float3 L, float NdotL, float3 view, float distance)
 	float diffuseConst = saturate(NdotL);
 
 	// Compute the diffuse lighting value.
-	float distanceCoeficient = saturate(3 / distance);
+	float distanceCoeficient = saturate(2.f / distance);
 	float3 diffuse = saturate(Kdiffuse * diffuseConst * distanceCoeficient);
 
 	// Compute the specular highlight.
@@ -108,35 +102,4 @@ float3 DplusS(float3 N, float3 L, float NdotL, float3 view, float distance)
 	float3 specular = Kspecular * pow(saturate(RdotV), exponent);
 
 	return (diffuse + specular);
-}
-
-float4 ComputeIllumination(float3 vLightTS, float3 vViewTS, float3 vNormalWS, float distance)
-{
-	// Sample the normal from the normal map for the given texture sample:
-	float3 vNormalTS = normalize(vNormalWS);
-
-	// Setting base color
-	float4 cBaseColor = float4(0.8, 0.8, 0.8, 1);
-
-	// Compute ambient component
-	float ambientPower = 0.1f;
-	float4 ambientColor = float4(1, 1, 1, 1);
-	float4 cAmbient = ambientColor * ambientPower;
-
-	// Compute diffuse color component:
-	float distanceCoefficient = saturate(3 / distance);
-	float4 cDiffuse = saturate(dot(vNormalTS, normalize(vLightTS) * distanceCoefficient));
-
-	// Compute the specular component if desired:
-	float3 H = normalize(vLightTS + vViewTS);
-	float NdotH = max(0, dot(vNormalTS, H));
-	float shininess = 50;
-	float specularPower = 0.1;
-	float4 specularColor = float4(1, 1, 1, 1);
-	float4 cSpecular = pow(saturate(NdotH), shininess) * specularColor * specularPower;
-
-	// Composite the final color:
-	float4 cFinalColor = cAmbient + (cDiffuse * cBaseColor) + cSpecular;
-
-	return cFinalColor;
 }

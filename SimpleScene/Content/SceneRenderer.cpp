@@ -1,5 +1,5 @@
 ﻿#include "pch.h"
-#include "Sample3DSceneRenderer.h"
+#include "SceneRenderer.h"
 
 #include "..\Common\DirectXHelper.h"
 
@@ -16,7 +16,7 @@ using namespace DirectX;
 using namespace Windows::Foundation;
 
 // Loads vertex and pixel shaders from files and instantiates the cube geometry.
-Sample3DSceneRenderer::Sample3DSceneRenderer(const std::shared_ptr<DX::DeviceResources>& deviceResources) :
+SceneRenderer::SceneRenderer(const std::shared_ptr<DX::DeviceResources>& deviceResources) :
 	m_loadingComplete(false),
 	m_degreesPerSecond(45),
 	m_tracking(false),
@@ -31,7 +31,7 @@ Sample3DSceneRenderer::Sample3DSceneRenderer(const std::shared_ptr<DX::DeviceRes
 }
 
 // Initializes view parameters when the window size changes.
-void Sample3DSceneRenderer::CreateWindowSizeDependentResources()
+void SceneRenderer::CreateWindowSizeDependentResources()
 {
 	m_camera = std::shared_ptr<Camera>(new Camera(
 		XMFLOAT4(1.0f, 1.0f, 1.6f, 0.0f),
@@ -52,17 +52,12 @@ void Sample3DSceneRenderer::CreateWindowSizeDependentResources()
 }
 
 // Called once per frame, rotates the cube and calculates the model and view matrices.
-void Sample3DSceneRenderer::Update(DX::StepTimer const& timer)
+void SceneRenderer::Update(DX::StepTimer const& timer)
 {
 	m_light->m_position.z = 3.0f * sinf(timer.GetTotalSeconds());
 	m_light->m_position.x = 3.0f * cosf(timer.GetTotalSeconds());
 	m_light->UpdateBuffer();
 
-	/*m_camera->setEye(XMFLOAT4(
-		1.5f * sinf(timer.GetTotalSeconds() / 5.f),
-		1,
-		1.5f * cosf(timer.GetTotalSeconds() / 5.f),
-		0));*/
 	m_camera->Update(timer, m_deviceResources);
 	for (auto object : m_sceneObjects)
 	{
@@ -81,19 +76,19 @@ void Sample3DSceneRenderer::Update(DX::StepTimer const& timer)
 }
 
 // Rotate the 3D cube model a set amount of radians.
-void Sample3DSceneRenderer::Rotate(float radians)
+void SceneRenderer::Rotate(float radians)
 {
 	// Prepare to pass the updated model matrix to the shader
 	//XMStoreFloat4x4(&m_constantBufferData.model, XMMatrixTranspose(XMMatrixRotationY(radians)));
 }
 
-void Sample3DSceneRenderer::StartTracking()
+void SceneRenderer::StartTracking()
 {
 	m_tracking = true;
 }
 
 // When tracking, the 3D cube can be rotated around its Y axis by tracking pointer position relative to the output screen width.
-void Sample3DSceneRenderer::TrackingUpdate(float positionX)
+void SceneRenderer::TrackingUpdate(float positionX)
 {
 	if (m_tracking)
 	{
@@ -102,13 +97,13 @@ void Sample3DSceneRenderer::TrackingUpdate(float positionX)
 	}
 }
 
-void Sample3DSceneRenderer::StopTracking()
+void SceneRenderer::StopTracking()
 {
 	m_tracking = false;
 }
 
 // Renders one frame using the vertex and pixel shaders.
-void Sample3DSceneRenderer::Render()
+void SceneRenderer::Render()
 {
 	// Loading is asynchronous. Only draw geometry after it's loaded.
 	if (!m_loadingComplete)
@@ -120,7 +115,7 @@ void Sample3DSceneRenderer::Render()
 	RenderSceneWithShadows();
 }
 
-void Sample3DSceneRenderer::RenderShadowMap()
+void SceneRenderer::RenderShadowMap()
 {
 	auto context = m_deviceResources->GetD3DDeviceContext();
 
@@ -138,6 +133,7 @@ void Sample3DSceneRenderer::RenderShadowMap()
 
 	// Set rendering state.
 	context->RSSetViewports(1, &m_shadowViewport);
+	context->RSSetState(m_shadowRenderState.Get());
 
 	// Draw scene objects
 	for (int i = 0; i < m_sceneObjects.size(); i++)
@@ -148,7 +144,7 @@ void Sample3DSceneRenderer::RenderShadowMap()
 	}
 }
 
-void Sample3DSceneRenderer::RenderSceneWithShadows()
+void SceneRenderer::RenderSceneWithShadows()
 {
 	auto context = m_deviceResources->GetD3DDeviceContext();
 
@@ -161,6 +157,7 @@ void Sample3DSceneRenderer::RenderSceneWithShadows()
 	
 	D3D11_VIEWPORT view = m_deviceResources->GetScreenViewport();
 	context->RSSetViewports(1, &view);
+	context->RSSetState(m_drawingRenderState.Get());
 
 	context->PSSetSamplers(0, 1, m_comparisonSampler.GetAddressOf());
 	context->PSSetShaderResources(0, 1, m_shadowResourceView.GetAddressOf());
@@ -190,7 +187,7 @@ void Sample3DSceneRenderer::RenderSceneWithShadows()
 	}
 }
 
-void Sample3DSceneRenderer::CreateDeviceDependentResources()
+void SceneRenderer::CreateDeviceDependentResources()
 {
 	// Initialize scene objects
 	Cube* cube = (Cube*)(m_sceneObjects[0]);
@@ -209,19 +206,11 @@ void Sample3DSceneRenderer::CreateDeviceDependentResources()
 	m_light = std::shared_ptr<PointLight>(new PointLight(
 		DirectX::XMFLOAT4(2.f, 2.f, 2.f, 1.f), XMFLOAT4(1.f, 1.f, 1.f, 1.f)));
 	m_light->LoadLightViewProjectionBuffer(m_deviceResources);
-	for (auto object : m_sceneObjects)
-	{
-		XMStoreFloat4(&object->m_constantBufferData.lightPosition,
-			XMVectorSet(m_light->m_position.x, m_light->m_position.y, m_light->m_position.z, m_light->m_position.w));
-		XMStoreFloat4(&object->m_constantBufferData.lightColor,
-			XMVectorSet(m_light->m_color.x, m_light->m_color.y, m_light->m_color.z, m_light->m_color.w));
-	}
 
 	// Load shaders asynchronously.
 	auto loadVSTask = DX::ReadDataAsync(L"ShadowVertexShader.cso");
-	auto loadDepthVSTask = DX::ReadDataAsync(L"SampleVertexShader.cso");
+	auto loadDepthVSTask = DX::ReadDataAsync(L"SimpleVertexShader.cso");
 	auto loadPSTask = DX::ReadDataAsync(L"ShadowPixelShader.cso");
-	auto loadDepthPSTask = DX::ReadDataAsync(L"SamplePixelShader.cso");
 
 	// After the vertex shader file is loaded, create the shader and input layout.
 	auto createVSTask = loadVSTask.then([this, cube](const std::vector<byte>& fileData) {
@@ -237,7 +226,6 @@ void Sample3DSceneRenderer::CreateDeviceDependentResources()
 		}
 	});
 
-
 	// After the pixel shader file is loaded, create the shader and constant buffer.
 	auto createPSTask = loadPSTask.then([this, cube](const std::vector<byte>& fileData) {
 		for (auto object : m_sceneObjects)
@@ -246,16 +234,9 @@ void Sample3DSceneRenderer::CreateDeviceDependentResources()
 			object->LoadCB(m_deviceResources);
 		}
 	});
-	auto createDepthPSTask = loadDepthPSTask.then([this, cube](const std::vector<byte>& fileData) {
-		for (auto object : m_sceneObjects)
-		{
-			object->LoadDepthPS(m_deviceResources, fileData);
-			object->LoadRasterStates(m_deviceResources);
-		}
-	});
 
 	// Once both shaders are loaded, create the mesh.
-	auto createSceneObjectsTask = (createPSTask && createDepthPSTask && createVSTask && createDepthVSTask).then([this, cube]() {
+	auto createSceneObjectsTask = (createPSTask && createVSTask && createDepthVSTask).then([this, cube]() {
 		for (auto object : m_sceneObjects)
 		{
 			object->GenerateMesh(m_deviceResources);
@@ -354,6 +335,33 @@ void Sample3DSceneRenderer::CreateDeviceDependentResources()
 		m_shadowViewport.MinDepth = 0.f;
 		m_shadowViewport.MaxDepth = 1.f;
 
+		// Init rasterizer states
+		D3D11_RASTERIZER_DESC drawingRenderStateDesc;
+		ZeroMemory(&drawingRenderStateDesc, sizeof(D3D11_RASTERIZER_DESC));
+		drawingRenderStateDesc.CullMode = D3D11_CULL_BACK;
+		drawingRenderStateDesc.FillMode = D3D11_FILL_SOLID;
+		drawingRenderStateDesc.DepthClipEnable = true; // Feature level 9_1 requires DepthClipEnable == true
+
+		DX::ThrowIfFailed(
+			pD3DDevice->CreateRasterizerState(
+				&drawingRenderStateDesc,
+				&m_drawingRenderState
+				)
+			);
+
+		D3D11_RASTERIZER_DESC shadowRenderStateDesc;
+		ZeroMemory(&shadowRenderStateDesc, sizeof(D3D11_RASTERIZER_DESC));
+		shadowRenderStateDesc.CullMode = D3D11_CULL_FRONT;
+		shadowRenderStateDesc.FillMode = D3D11_FILL_SOLID;
+		shadowRenderStateDesc.DepthClipEnable = true;
+
+		DX::ThrowIfFailed(
+			pD3DDevice->CreateRasterizerState(
+				&shadowRenderStateDesc,
+				&m_shadowRenderState
+				)
+			);
+
 	});
 
 	// Once the objects and the shadow map are loaded, the objects are ready to be rendered.
@@ -362,7 +370,7 @@ void Sample3DSceneRenderer::CreateDeviceDependentResources()
 	});
 }
 
-void Sample3DSceneRenderer::ReleaseDeviceDependentResources()
+void SceneRenderer::ReleaseDeviceDependentResources()
 {
 	for (auto it = m_sceneObjects.begin(); it != m_sceneObjects.end(); ++it)
 	{

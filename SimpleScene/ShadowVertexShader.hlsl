@@ -1,18 +1,18 @@
+// Constant buffer that stores the 3 transformation matrices and the camera position
 cbuffer MyConstantBuffer : register(b0)
 {
 	matrix world;
 	matrix view;
 	matrix projection;
-	float4 lightPosition;
-	float4 lightColor;
 	float4 eyePos;
 };
 
+// Constant buffer that stores matrices for point light and light position
 cbuffer ViewProjectionConstantBuffer : register(b1)
 {
 	matrix lView;
 	matrix lProjection;
-	float4 lPos; // eye position
+	float4 lPos;
 };
 
 // Per-vertex data used as input to the vertex shader.
@@ -58,9 +58,6 @@ PixelShaderInput main(VertexShaderInput input)
 	output.view = eyePos.xyz - worldPos.xyz;
 
 	// Transform the vertex normal into world space.
-	//float4 norm = float4(input.norm, 1.0f);
-	//norm = mul(norm, world);
-	//output.norm = norm.xyz;
 	output.norm = mul(input.norm, world);
 
 	output.color = float3(1, 1, 1);

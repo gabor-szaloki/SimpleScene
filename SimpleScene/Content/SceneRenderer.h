@@ -11,10 +11,10 @@
 namespace SimpleScene
 {
 	// This sample renderer instantiates a basic rendering pipeline.
-	class Sample3DSceneRenderer
+	class SceneRenderer
 	{
 	public:
-		Sample3DSceneRenderer(const std::shared_ptr<DX::DeviceResources>& deviceResources);
+		SceneRenderer(const std::shared_ptr<DX::DeviceResources>& deviceResources);
 		void CreateDeviceDependentResources();
 		void CreateWindowSizeDependentResources();
 		void ReleaseDeviceDependentResources();
@@ -42,6 +42,8 @@ namespace SimpleScene
 		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_shadowResourceView;
 		Microsoft::WRL::ComPtr<ID3D11SamplerState>       m_comparisonSampler;
 		Microsoft::WRL::ComPtr<ID3D11SamplerState>       m_linearSampler;
+		Microsoft::WRL::ComPtr<ID3D11RasterizerState>    m_shadowRenderState;
+		Microsoft::WRL::ComPtr<ID3D11RasterizerState>    m_drawingRenderState;
 		D3D11_VIEWPORT                                   m_shadowViewport;
 
 		// Vector for scene objects

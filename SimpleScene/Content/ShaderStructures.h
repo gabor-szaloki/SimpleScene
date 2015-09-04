@@ -15,8 +15,6 @@ namespace SimpleScene
 		DirectX::XMFLOAT4X4 world;
 		DirectX::XMFLOAT4X4 view;
 		DirectX::XMFLOAT4X4 projection;
-		DirectX::XMFLOAT4 lightPosition;
-		DirectX::XMFLOAT4 lightColor;
 		DirectX::XMFLOAT4 cameraPosition;
 	};
 
