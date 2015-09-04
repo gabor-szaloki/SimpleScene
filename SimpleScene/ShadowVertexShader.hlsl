@@ -40,27 +40,28 @@ PixelShaderInput main(VertexShaderInput input)
 	float4 pos = float4(input.pos, 1.0f);
 
 	// Transform the vertex position into projected space.
-	float4 modelPos = mul(pos, world);
-	pos = mul(modelPos, view);
+	float4 worldPos = mul(pos, world);
+	pos = mul(worldPos, view);
 	pos = mul(pos, projection);
 	output.pos = pos;
 
 	// Transform the vertex position into projected space from the POV of the light.
-	float4 lightSpacePos = mul(modelPos, lView);
+	float4 lightSpacePos = mul(worldPos, lView);
 	lightSpacePos = mul(lightSpacePos, lProjection);
 	output.lightSpacePos = lightSpacePos;
 
 	// Light ray
-	float3 lRay = lPos.xyz - modelPos.xyz;
+	float3 lRay = lPos.xyz - worldPos.xyz;
 	output.lRay = lRay;
 
 	// Camera ray
-	output.view = eyePos.xyz - modelPos.xyz;
+	output.view = eyePos.xyz - worldPos.xyz;
 
 	// Transform the vertex normal into world space.
-	float4 norm = float4(input.norm, 1.0f);
-	norm = mul(norm, world);
-	output.norm = norm.xyz;
+	//float4 norm = float4(input.norm, 1.0f);
+	//norm = mul(norm, world);
+	//output.norm = norm.xyz;
+	output.norm = mul(input.norm, world);
 
 	output.color = float3(1, 1, 1);
 

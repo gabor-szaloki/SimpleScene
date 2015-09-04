@@ -48,9 +48,9 @@ void PointLight::LoadLightViewProjectionBuffer(
 
 void PointLight::UpdateBuffer()
 {
-	static const XMVECTORF32 eye = { m_position.x, m_position.y, m_position.z, m_position.w };
-	static const XMVECTORF32 at = { 0.0f, 0.0f, 0.0f, 0.0f };
-	static const XMVECTORF32 up = { 0.0f, 1.0f, 0.0f, 0.0f };
+	XMVECTORF32 eye = { m_position.x, m_position.y, m_position.z, m_position.w };
+	XMVECTORF32 at = { 0.0f, 0.0f, 0.0f, 0.0f };
+	XMVECTORF32 up = { 0.0f, 1.0f, 0.0f, 0.0f };
 
 	XMStoreFloat4x4(
 		&m_viewProjectionBufferData.view,

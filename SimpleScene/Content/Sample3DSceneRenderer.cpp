@@ -88,7 +88,7 @@ void Sample3DSceneRenderer::Update(DX::StepTimer const& timer)
 	m_light->m_position.x = 3.0f * cosf(timer.GetTotalSeconds());
 	for (auto object : m_sceneObjects)
 	{
-		object->m_constantBufferData.lightPosition = m_light->m_position;
+		//object->m_constantBufferData.lightPosition = m_light->m_position;
 	}
 	m_light->UpdateBuffer();
 
@@ -159,18 +159,11 @@ void Sample3DSceneRenderer::RenderShadowMap()
 		m_shadowDepthView.Get()
 		);
 
-	// Note that starting with the second frame, the previous call will display
-	// warnings in VS debug output about forcing an unbind of the pixel shader
-	// resource. This warning can be safely ignored when using shadow buffers
-	// as demonstrated in this sample.
-
 	// Set rendering state.
 	context->RSSetViewports(1, &m_shadowViewport);
 
-	//m_light->UpdateBuffer();
-
 	// Draw scene objects
-	for (int i = 0; i < m_sceneObjects.size()/* - 1*/; i++)
+	for (int i = 0; i < m_sceneObjects.size(); i++)
 	{
 		m_sceneObjects[i]->m_constantBufferData.view = m_light->m_viewProjectionBufferData.view;
 		m_sceneObjects[i]->m_constantBufferData.projection = m_light->m_viewProjectionBufferData.projection;
@@ -181,6 +174,9 @@ void Sample3DSceneRenderer::RenderShadowMap()
 void Sample3DSceneRenderer::RenderSceneWithShadows()
 {
 	auto context = m_deviceResources->GetD3DDeviceContext();
+
+	context->ClearRenderTargetView(m_deviceResources->GetBackBufferRenderTargetView(), DirectX::Colors::CornflowerBlue);
+	context->ClearDepthStencilView(m_deviceResources->GetDepthStencilView(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 
 	// Set render targets to the screen.
 	ID3D11RenderTargetView *const targets[1] = { m_deviceResources->GetBackBufferRenderTargetView() };

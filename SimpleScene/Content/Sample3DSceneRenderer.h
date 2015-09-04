@@ -36,7 +36,7 @@ namespace SimpleScene
 		std::shared_ptr<DX::DeviceResources> m_deviceResources;
 
 		// Shadow map resources
-		float m_shadowMapDimension = 1024.f;
+		float m_shadowMapDimension = 2048.f;
 		Microsoft::WRL::ComPtr<ID3D11Texture2D>          m_shadowMap;
 		Microsoft::WRL::ComPtr<ID3D11DepthStencilView>   m_shadowDepthView;
 		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_shadowResourceView;
