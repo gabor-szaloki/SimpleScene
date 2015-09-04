@@ -42,13 +42,13 @@
     <ClCompile Include="Room.cpp">
       <Filter>Content</Filter>
     </ClCompile>
-    <ClCompile Include="Camera.cpp">
-      <Filter>Content</Filter>
-    </ClCompile>
     <ClCompile Include="Content\SceneRenderer.cpp">
       <Filter>Content</Filter>
     </ClCompile>
     <ClCompile Include="Content\FpsTextRenderer.cpp">
+      <Filter>Content</Filter>
+    </ClCompile>
+    <ClCompile Include="Camera.cpp">
       <Filter>Content</Filter>
     </ClCompile>
   </ItemGroup>

@@ -55,7 +55,6 @@ float4 main(PixelShaderInput input) : SV_TARGET
 		float epsilon = 0.00001 / margin;
 		// Clamp epsilon to a fixed range so it doesn't go overboard.
 		epsilon = clamp(epsilon, 0, 0.1);
-		//epsilon = 0.0;
 
 		lighting = float(shadowMap.SampleCmpLevelZero(
 			shadowSampler,
@@ -67,7 +66,6 @@ float4 main(PixelShaderInput input) : SV_TARGET
 		if (lighting == 0.f)
 		{
 			return float4(input.color * ambient, 1.f);
-			//return float4(1, 0, 0, 1);
 		}
 		else if (lighting < 1.0f)
 		{

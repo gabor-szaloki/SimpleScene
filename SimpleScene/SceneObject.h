@@ -31,7 +31,7 @@ public:
 
 	~SceneObject();
 
-	MyConstantBuffer m_constantBufferData;
+	WorldViewProjEyeConstantBuffer m_constantBufferData;
 
 protected:
 	// Direct3D resources for geometry.

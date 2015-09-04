@@ -1,5 +1,5 @@
 // Constant buffer that stores the 3 transformation matrices and the camera position
-cbuffer MyConstantBuffer : register(b0)
+cbuffer WorldViewProjEyeConstantBuffer : register(b0)
 {
 	matrix world;
 	matrix view;

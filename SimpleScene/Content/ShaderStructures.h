@@ -10,7 +10,7 @@ namespace SimpleScene
 		DirectX::XMFLOAT4X4 projection;
 	};
 
-	struct MyConstantBuffer
+	struct WorldViewProjEyeConstantBuffer
 	{
 		DirectX::XMFLOAT4X4 world;
 		DirectX::XMFLOAT4X4 view;

@@ -1,5 +1,5 @@
 // A constant buffer that stores the three basic column-major matrices for composing geometry.
-cbuffer MyConstantBuffer : register(b0)
+cbuffer WorldViewProjEyeConstantBuffer : register(b0)
 {
 	matrix world;
 	matrix view;
