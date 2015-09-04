@@ -51,9 +51,7 @@ namespace SimpleScene
 		std::shared_ptr<PointLight> m_light;
 
 		// Camera
-		//std::shared_ptr<Camera> m_camera;
-		XMFLOAT4X4 m_view;
-		XMFLOAT4X4 m_projection;
+		std::shared_ptr<Camera> m_camera;
 
 		// Variables used with the rendering loop.
 		bool	m_loadingComplete;

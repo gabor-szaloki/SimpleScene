@@ -82,9 +82,9 @@ float4 main(PixelShaderInput input) : SV_TARGET
 		}
 	}
 
-	//return float4(input.color * (ambient + DplusS(N, L, NdotL, input.view, distance)), 1.f);
-	float4 finalColor = ComputeIllumination(L, input.view, N, distance);
-	return finalColor;
+	return float4(input.color * (ambient + DplusS(N, L, NdotL, input.view, distance)), 1.f);
+	//float4 finalColor = ComputeIllumination(L, input.view, N, distance);
+	//return finalColor;
 }
 
 // Performs very basic Phong lighting for example purposes.

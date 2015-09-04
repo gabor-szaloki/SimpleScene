@@ -8,6 +8,8 @@
 #include "Room.h"
 #include "Camera.h"
 
+#include <Windows.h>
+
 using namespace SimpleScene;
 
 using namespace DirectX;
@@ -31,54 +33,22 @@ Sample3DSceneRenderer::Sample3DSceneRenderer(const std::shared_ptr<DX::DeviceRes
 // Initializes view parameters when the window size changes.
 void Sample3DSceneRenderer::CreateWindowSizeDependentResources()
 {
-	Size outputSize = m_deviceResources->GetOutputSize();
-	float aspectRatio = outputSize.Width / outputSize.Height;
-	float fovAngleY = 70.0f * XM_PI / 180.0f;
-
-	// This is a simple example of change that can be made when the app is in
-	// portrait or snapped view.
-	if (aspectRatio < 1.0f)
-	{
-		fovAngleY *= 2.0f;
-	}
-
-	// Note that the OrientationTransform3D matrix is post-multiplied here
-	// in order to correctly orient the scene to match the display orientation.
-	// This post-multiplication step is required for any draw calls that are
-	// made to the swap chain render target. For draw calls to other targets,
-	// this transform should not be applied.
-
-	// This sample makes use of a right-handed coordinate system using row-major matrices.
-	XMMATRIX perspectiveMatrix = XMMatrixPerspectiveFovRH(
-		fovAngleY,
-		aspectRatio,
-		0.01f,
-		100.0f
-		);
-
-	XMFLOAT4X4 orientation = m_deviceResources->GetOrientationTransform3D();
-
-	XMMATRIX orientationMatrix = XMLoadFloat4x4(&orientation);
-
-	// Eye is at (0,0.7,1.5), looking at point (0,-0.1,0) with the up-vector along the y-axis.
-	static const XMVECTORF32 eye = { 1.0f, 1.0f, 1.6f, 0.0f };
-	static const XMVECTORF32 at = { 0.0f, 0.0f, 0.0f, 0.0f };
-	static const XMVECTORF32 up = { 0.0f, 1.0f, 0.0f, 0.0f };
+	m_camera = std::shared_ptr<Camera>(new Camera(
+		XMFLOAT4(1.0f, 1.0f, 1.6f, 0.0f),
+		XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f),
+		XMFLOAT4(0.0f, 1.0f, 0.0f, 0.0f),
+		m_deviceResources
+		));
 
 	for (auto object : m_sceneObjects)
 	{
-		XMStoreFloat4x4(&object->m_constantBufferData.view, XMMatrixTranspose(XMMatrixLookAtRH(eye, at, up)));
+		XMStoreFloat4x4(&object->m_constantBufferData.view, m_camera->getView());
 		
 		XMStoreFloat4x4(
-			&object->m_constantBufferData.projection,
-			XMMatrixTranspose(perspectiveMatrix * orientationMatrix)
-			);
+			&object->m_constantBufferData.projection, m_camera->getProjection());
 
-		XMStoreFloat4(&object->m_constantBufferData.cameraPosition, eye);
+		XMStoreFloat4(&object->m_constantBufferData.cameraPosition, m_camera->getEye());
 	}
-
-	m_view = m_sceneObjects[0]->m_constantBufferData.view;
-	m_projection = m_sceneObjects[0]->m_constantBufferData.projection;
 }
 
 // Called once per frame, rotates the cube and calculates the model and view matrices.
@@ -86,11 +56,18 @@ void Sample3DSceneRenderer::Update(DX::StepTimer const& timer)
 {
 	m_light->m_position.z = 3.0f * sinf(timer.GetTotalSeconds());
 	m_light->m_position.x = 3.0f * cosf(timer.GetTotalSeconds());
+	m_light->UpdateBuffer();
+
+	/*m_camera->setEye(XMFLOAT4(
+		1.5f * sinf(timer.GetTotalSeconds() / 5.f),
+		1,
+		1.5f * cosf(timer.GetTotalSeconds() / 5.f),
+		0));*/
+	m_camera->Update(timer, m_deviceResources);
 	for (auto object : m_sceneObjects)
 	{
-		//object->m_constantBufferData.lightPosition = m_light->m_position;
+		XMStoreFloat4(&object->m_constantBufferData.cameraPosition, m_camera->getEye());
 	}
-	m_light->UpdateBuffer();
 
 	/*if (!m_tracking)
 	{
@@ -207,8 +184,8 @@ void Sample3DSceneRenderer::RenderSceneWithShadows()
 	// Draw scene objects
 	for (auto object : m_sceneObjects)
 	{
-		object->m_constantBufferData.view = m_view;
-		object->m_constantBufferData.projection = m_projection;
+		XMStoreFloat4x4(&object->m_constantBufferData.view, m_camera->getView());
+		XMStoreFloat4x4(&object->m_constantBufferData.projection, m_camera->getProjection());
 		object->Draw(m_deviceResources);
 	}
 }
