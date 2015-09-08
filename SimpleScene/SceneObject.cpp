@@ -15,10 +15,10 @@ void SceneObject::Draw(std::shared_ptr<DX::DeviceResources> deviceResources)
 
 	// Prepare the constant buffer to send it to the graphics device.
 	context->UpdateSubresource(
-		m_constantBuffer.Get(),
+		m_sceneVSConstantBuffer.Get(),
 		0,
 		NULL,
-		&m_constantBufferData,
+		&m_sceneVSConstantBufferData,
 		0,
 		0
 		);
@@ -55,7 +55,15 @@ void SceneObject::Draw(std::shared_ptr<DX::DeviceResources> deviceResources)
 	context->VSSetConstantBuffers(
 		0,
 		1,
-		m_constantBuffer.GetAddressOf()
+		m_sceneVSConstantBuffer.GetAddressOf()
+		);
+
+	// Set nullshader as geometry shader
+	ID3D11GeometryShader* nullGS = nullptr;
+	context->GSSetShader(
+		nullGS,
+		nullptr,
+		0
 		);
 
 	// Attach our pixel shader.
@@ -63,12 +71,6 @@ void SceneObject::Draw(std::shared_ptr<DX::DeviceResources> deviceResources)
 		m_pixelShader.Get(),
 		nullptr,
 		0
-		);
-
-	context->PSSetConstantBuffers(
-		0,
-		1,
-		m_constantBuffer.GetAddressOf()
 		);
 	
 	// Draw the objects.
@@ -84,10 +86,18 @@ void SceneObject::DrawDepthMap(std::shared_ptr<DX::DeviceResources> deviceResour
 	auto context = deviceResources->GetD3DDeviceContext();
 
 	context->UpdateSubresource(
-		m_constantBuffer.Get(),
+		m_shadowVSConstantBuffer.Get(),
 		0,
 		NULL,
-		&m_constantBufferData,
+		&m_shadowVSConstantBufferData,
+		0,
+		0
+		);
+	context->UpdateSubresource(
+		m_shadowGSConstantBuffer.Get(),
+		0,
+		NULL,
+		&m_shadowGSConstantBufferData,
 		0,
 		0
 		);
@@ -113,23 +123,34 @@ void SceneObject::DrawDepthMap(std::shared_ptr<DX::DeviceResources> deviceResour
 
 	context->IASetInputLayout(m_inputLayout.Get());
 
-	// Attach our vertex shader.
+	// Attach our vertex shader with constant buffer.
 	context->VSSetShader(
 		m_depthVertexShader.Get(),
 		nullptr,
 		0
 		);
-
 	context->VSSetConstantBuffers(
 		0,
 		1,
-		m_constantBuffer.GetAddressOf()
+		m_shadowVSConstantBuffer.GetAddressOf()
+		);
+
+
+	// Attach geometry shader with constant buffer.
+	context->GSSetShader(
+		m_depthGeometryShader.Get(),
+		nullptr,
+		0
+		);
+	context->GSSetConstantBuffers(
+		0,
+		1,
+		m_shadowGSConstantBuffer.GetAddressOf()
 		);
 
 	// Attach our pixel shader.
-	ID3D11PixelShader* nullPS = nullptr;
 	context->PSSetShader(
-		nullPS,
+		m_depthPixelShader.Get(),
 		nullptr,
 		0
 		);
@@ -186,6 +207,20 @@ void SceneObject::LoadDepthVS(
 		);
 }
 
+void SceneObject::LoadDepthGS(
+	std::shared_ptr<DX::DeviceResources> deviceResources,
+	const std::vector<byte>& fileData)
+{
+	DX::ThrowIfFailed(
+		deviceResources->GetD3DDevice()->CreateGeometryShader(
+			&fileData[0],
+			fileData.size(),
+			nullptr,
+			&m_depthGeometryShader
+			)
+		);
+}
+
 void SceneObject::LoadPS(
 	std::shared_ptr<DX::DeviceResources> deviceResources,
 	const std::vector<byte>& fileData)
@@ -200,15 +235,45 @@ void SceneObject::LoadPS(
 		);
 }
 
-void SceneObject::LoadCB(
+void SceneObject::LoadDepthPS(
+	std::shared_ptr<DX::DeviceResources> deviceResources,
+	const std::vector<byte>& fileData)
+{
+	DX::ThrowIfFailed(
+		deviceResources->GetD3DDevice()->CreatePixelShader(
+			&fileData[0],
+			fileData.size(),
+			nullptr,
+			&m_depthPixelShader
+			)
+		);
+}
+
+void SceneObject::LoadCBs(
 	std::shared_ptr<DX::DeviceResources> deviceResources)
 {
-	CD3D11_BUFFER_DESC constantBufferDesc(sizeof(WorldViewProjEyeConstantBuffer), D3D11_BIND_CONSTANT_BUFFER);
+	CD3D11_BUFFER_DESC shadowVSConstantBufferDesc(sizeof(ShadowVSConstantBuffer), D3D11_BIND_CONSTANT_BUFFER);
 	DX::ThrowIfFailed(
 		deviceResources->GetD3DDevice()->CreateBuffer(
-			&constantBufferDesc,
+			&shadowVSConstantBufferDesc,
 			nullptr,
-			&m_constantBuffer
+			&m_shadowVSConstantBuffer
+			)
+		);
+	CD3D11_BUFFER_DESC shadowGSConstantBufferDesc(sizeof(ShadowGSConstantBuffer), D3D11_BIND_CONSTANT_BUFFER);
+	DX::ThrowIfFailed(
+		deviceResources->GetD3DDevice()->CreateBuffer(
+			&shadowGSConstantBufferDesc,
+			nullptr,
+			&m_shadowGSConstantBuffer
+			)
+		);
+	CD3D11_BUFFER_DESC shadowPSConstantBufferDesc(sizeof(SceneVSConstantBuffer), D3D11_BIND_CONSTANT_BUFFER);
+	DX::ThrowIfFailed(
+		deviceResources->GetD3DDevice()->CreateBuffer(
+			&shadowPSConstantBufferDesc,
+			nullptr,
+			&m_sceneVSConstantBuffer
 			)
 		);
 }
@@ -220,5 +285,7 @@ SceneObject::~SceneObject()
 	m_indexBuffer.Reset();
 	m_vertexShader.Reset();
 	m_pixelShader.Reset();
-	m_constantBuffer.Reset();
+	m_shadowVSConstantBuffer.Reset();
+	m_shadowGSConstantBuffer.Reset();
+	m_sceneVSConstantBuffer.Reset();
 }

@@ -12,7 +12,7 @@ PointLight::PointLight(XMFLOAT4 position, XMFLOAT4 color)
 void PointLight::LoadLightViewProjectionBuffer(
 	std::shared_ptr<DX::DeviceResources> deviceResources)
 {
-	CD3D11_BUFFER_DESC constantBufferDesc(sizeof(ViewProjectionConstantBuffer), D3D11_BIND_CONSTANT_BUFFER);
+	CD3D11_BUFFER_DESC constantBufferDesc(sizeof(LightViewsProjectionConstantBuffer), D3D11_BIND_CONSTANT_BUFFER);
 	DX::ThrowIfFailed(
 		deviceResources->GetD3DDevice()->CreateBuffer(
 			&constantBufferDesc,
@@ -29,21 +29,11 @@ void PointLight::LoadLightViewProjectionBuffer(
 		);
 
 	XMStoreFloat4x4(
-		&m_viewProjectionBufferData.projection,
+		&m_projection,
 		XMMatrixTranspose(lightPerspectiveMatrix)
 		);
 
-	static const XMVECTORF32 eye = { m_position.x, m_position.y, m_position.z, m_position.w };
-	static const XMVECTORF32 at = { 0.0f, 0.0f, 0.0f, 0.0f };
-	static const XMVECTORF32 up = { 0.0f, 1.0f, 0.0f, 0.0f };
-
-	XMStoreFloat4x4(
-		&m_viewProjectionBufferData.view,
-		XMMatrixTranspose(XMMatrixLookAtRH(eye, at, up))
-		);
-
-	// Store the light position to help calculate the shadow offset.
-	m_viewProjectionBufferData.pos = m_position;
+	UpdateBuffer();
 }
 
 void PointLight::UpdateBuffer()
@@ -52,13 +42,30 @@ void PointLight::UpdateBuffer()
 	XMVECTORF32 at = { 0.0f, 0.0f, 0.0f, 0.0f };
 	XMVECTORF32 up = { 0.0f, 1.0f, 0.0f, 0.0f };
 
-	XMStoreFloat4x4(
-		&m_viewProjectionBufferData.view,
-		XMMatrixTranspose(XMMatrixLookAtRH(eye, at, up))
-		);
+	XMVECTORF32 ats[6] = {
+		{ m_position.x + 1.f, m_position.y, m_position.z, m_position.w },
+		{ m_position.x - 1.f, m_position.y, m_position.z, m_position.w },
+		{ m_position.x, m_position.y + 1.f, m_position.z, m_position.w },
+		{ m_position.x, m_position.y - 1.f, m_position.z, m_position.w },
+		{ m_position.x, m_position.y, m_position.z + 1.f, m_position.w },
+		{ m_position.x, m_position.y, m_position.z - 1.f, m_position.w }
+	};
+	XMVECTORF32 ups[6] = {
+		{ 0.0f, 1.0f, 0.0f, 0.0f },
+		{ 0.0f, 1.0f, 0.0f, 0.0f },
+		{ 0.0f, 0.0f, 1.0f, 0.0f },
+		{ 0.0f, 0.0f, -1.0f, 0.0f },
+		{ 0.0f, 1.0f, 0.0f, 0.0f },
+		{ 0.0f, 1.0f, 0.0f, 0.0f }
+	};
 
-	// Store the light position to help calculate the shadow offset.
-	m_viewProjectionBufferData.pos = m_position;
+	for (int i = 0; i < 6; i++)
+	{
+		XMStoreFloat4x4(
+			&m_views[i],
+			XMMatrixTranspose(XMMatrixLookAtRH(eye, ats[i], ups[i]))
+			);
+	}
 }
 
 PointLight::~PointLight()

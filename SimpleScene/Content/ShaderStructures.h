@@ -25,6 +25,34 @@ namespace SimpleScene
 		DirectX::XMFLOAT4   pos;
 	};
 
+	struct LightViewsProjectionConstantBuffer
+	{
+		DirectX::XMFLOAT4X4 views[6];
+		DirectX::XMFLOAT4X4 projection;
+		DirectX::XMFLOAT4   pos;
+	};
+
+	struct ShadowVSConstantBuffer
+	{
+		DirectX::XMFLOAT4X4 world;
+		DirectX::XMFLOAT4   lightPos;
+	};
+
+	struct ShadowGSConstantBuffer
+	{
+		DirectX::XMFLOAT4X4 lightViews[6];
+		DirectX::XMFLOAT4X4 projection;
+	};
+
+	struct SceneVSConstantBuffer
+	{
+		DirectX::XMFLOAT4X4 world;
+		DirectX::XMFLOAT4X4 view;
+		DirectX::XMFLOAT4X4 projection;
+		DirectX::XMFLOAT4   lightPos;
+		DirectX::XMFLOAT4   cameraPosition;
+	};
+
 	// Used to send per-vertex data to the vertex shader.
 	struct VertexPositionColor
 	{
