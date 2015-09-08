@@ -29,9 +29,12 @@ namespace SimpleScene
 
 		// Shadow map resources
 		float m_shadowMapDimension = 2048.f;
-		Microsoft::WRL::ComPtr<ID3D11Texture2D>          m_shadowMap;
-		Microsoft::WRL::ComPtr<ID3D11DepthStencilView>   m_shadowDepthView;
-		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_shadowResourceView;
+		Microsoft::WRL::ComPtr<ID3D11Texture2D>          m_frontShadowMap;
+		Microsoft::WRL::ComPtr<ID3D11DepthStencilView>   m_frontShadowDepthView;
+		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_frontShadowResourceView;
+		Microsoft::WRL::ComPtr<ID3D11Texture2D>          m_backShadowMap;
+		Microsoft::WRL::ComPtr<ID3D11DepthStencilView>   m_backShadowDepthView;
+		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_backShadowResourceView;
 		Microsoft::WRL::ComPtr<ID3D11SamplerState>       m_comparisonSampler;
 		Microsoft::WRL::ComPtr<ID3D11SamplerState>       m_linearSampler;
 		Microsoft::WRL::ComPtr<ID3D11RasterizerState>    m_shadowRenderState;

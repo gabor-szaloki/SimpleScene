@@ -18,8 +18,6 @@ using namespace Windows::Foundation;
 // Loads vertex and pixel shaders from files and instantiates the cube geometry.
 SceneRenderer::SceneRenderer(const std::shared_ptr<DX::DeviceResources>& deviceResources) :
 	m_loadingComplete(false),
-	m_degreesPerSecond(45),
-	m_tracking(false),
 	m_deviceResources(deviceResources)
 {
 	m_sceneObjects.push_back(new Cube());
@@ -54,8 +52,11 @@ void SceneRenderer::CreateWindowSizeDependentResources()
 // Called once per frame, rotates the cube and calculates the model and view matrices.
 void SceneRenderer::Update(DX::StepTimer const& timer)
 {
-	m_light->m_position.z = 3.0f * sinf(timer.GetTotalSeconds());
 	m_light->m_position.x = 3.0f * cosf(timer.GetTotalSeconds());
+	//m_light->m_position.x = 0.0f;
+	//m_light->m_position.y = 2.0f;
+	m_light->m_position.z = 3.0f * sinf(timer.GetTotalSeconds());
+	//m_light->m_position.z = 1.0f * sinf(timer.GetTotalSeconds());
 	m_light->UpdateBuffer();
 
 	m_camera->Update(timer, m_deviceResources);
@@ -83,26 +84,44 @@ void SceneRenderer::RenderShadowMap()
 	auto context = m_deviceResources->GetD3DDeviceContext();
 
 	context->ClearRenderTargetView(m_deviceResources->GetBackBufferRenderTargetView(), DirectX::Colors::CornflowerBlue);
-	context->ClearDepthStencilView(m_shadowDepthView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+	context->ClearDepthStencilView(m_frontShadowDepthView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+	context->ClearDepthStencilView(m_backShadowDepthView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 
 	// Render all the objects in the scene that can cast shadows onto themselves or onto other objects.
+	
+	// Set rendering state.
+	context->RSSetViewports(1, &m_shadowViewport);
+	context->RSSetState(m_shadowRenderState.Get());
 
 	// Only bind the ID3D11DepthStencilView for output.
 	context->OMSetRenderTargets(
 		0,
 		nullptr,
-		m_shadowDepthView.Get()
+		m_frontShadowDepthView.Get()
 		);
 
-	// Set rendering state.
-	context->RSSetViewports(1, &m_shadowViewport);
-	context->RSSetState(m_shadowRenderState.Get());
-
-	// Draw scene objects
+	// Draw scene to front shadow paraboloid
 	for (int i = 0; i < m_sceneObjects.size(); i++)
 	{
-		m_sceneObjects[i]->m_constantBufferData.view = m_light->m_viewProjectionBufferData.view;
-		m_sceneObjects[i]->m_constantBufferData.projection = m_light->m_viewProjectionBufferData.projection;
+		m_sceneObjects[i]->m_constantBufferData.view = m_light->m_viewsBufferData.frontView;
+		//m_sceneObjects[i]->m_constantBufferData.projection = m_light->m_viewProjectionBufferData.projection;
+		m_sceneObjects[i]->m_constantBufferData.cameraPosition = XMFLOAT4(1.0f, 0, 0, 0);
+		m_sceneObjects[i]->DrawDepthMap(m_deviceResources);
+	}
+
+	// Only bind the ID3D11DepthStencilView for output.
+	context->OMSetRenderTargets(
+		0,
+		nullptr,
+		m_backShadowDepthView.Get()
+		);
+
+	// Draw scene to back shadow paraboloid
+	for (int i = 0; i < m_sceneObjects.size(); i++)
+	{
+		m_sceneObjects[i]->m_constantBufferData.view = m_light->m_viewsBufferData.backView;
+		//m_sceneObjects[i]->m_constantBufferData.projection = m_light->m_viewProjectionBufferData.projection;
+		m_sceneObjects[i]->m_constantBufferData.cameraPosition = XMFLOAT4(-1.0f, 0, 0, 0);
 		m_sceneObjects[i]->DrawDepthMap(m_deviceResources);
 	}
 }
@@ -123,14 +142,15 @@ void SceneRenderer::RenderSceneWithShadows()
 	context->RSSetState(m_drawingRenderState.Get());
 
 	context->PSSetSamplers(0, 1, m_comparisonSampler.GetAddressOf());
-	context->PSSetShaderResources(0, 1, m_shadowResourceView.GetAddressOf());
+	context->PSSetShaderResources(0, 1, m_frontShadowResourceView.GetAddressOf());
+	context->PSSetShaderResources(1, 1, m_backShadowResourceView.GetAddressOf());
 	
 	// Prepare the constant buffer to send it to the graphics device.
 	context->UpdateSubresource(
-		m_light->m_viewProjectionBuffer.Get(),
+		m_light->m_viewsBuffer.Get(),
 		0,
 		NULL,
-		&m_light->m_viewProjectionBufferData,
+		&m_light->m_viewsBufferData,
 		0,
 		0
 		);
@@ -138,7 +158,7 @@ void SceneRenderer::RenderSceneWithShadows()
 	context->VSSetConstantBuffers(
 		1,
 		1,
-		m_light->m_viewProjectionBuffer.GetAddressOf()
+		m_light->m_viewsBuffer.GetAddressOf()
 		);
 
 	// Draw scene objects
@@ -171,9 +191,10 @@ void SceneRenderer::CreateDeviceDependentResources()
 	m_light->LoadLightViewProjectionBuffer(m_deviceResources);
 
 	// Load shaders asynchronously.
-	auto loadVSTask = DX::ReadDataAsync(L"ShadowVertexShader.cso");
-	auto loadDepthVSTask = DX::ReadDataAsync(L"SimpleVertexShader.cso");
-	auto loadPSTask = DX::ReadDataAsync(L"ShadowPixelShader.cso");
+	auto loadVSTask = DX::ReadDataAsync(L"SceneVertexShader.cso");
+	auto loadDepthVSTask = DX::ReadDataAsync(L"ShadowMapVertexShader.cso");
+	auto loadPSTask = DX::ReadDataAsync(L"ScenePixelShader.cso");
+	auto loadDepthPSTask = DX::ReadDataAsync(L"ShadowMapPixelShader.cso");
 
 	// After the vertex shader file is loaded, create the shader and input layout.
 	auto createVSTask = loadVSTask.then([this, cube](const std::vector<byte>& fileData) {
@@ -197,9 +218,15 @@ void SceneRenderer::CreateDeviceDependentResources()
 			object->LoadCB(m_deviceResources);
 		}
 	});
+	auto createDepthPSTask = loadDepthPSTask.then([this, cube](const std::vector<byte>& fileData) {
+		for (auto object : m_sceneObjects)
+		{
+			object->LoadDepthPS(m_deviceResources, fileData);
+		}
+	});
 
 	// Once shaders are loaded, create the mesh.
-	auto createSceneObjectsTask = (createPSTask && createVSTask && createDepthVSTask).then([this, cube]() {
+	auto createSceneObjectsTask = (createPSTask && createDepthPSTask && createVSTask && createDepthVSTask).then([this, cube]() {
 		for (auto object : m_sceneObjects)
 		{
 			object->GenerateMesh(m_deviceResources);
@@ -209,6 +236,7 @@ void SceneRenderer::CreateDeviceDependentResources()
 	// Initializing resources needed for shadow mapping
 	auto createShadowMapResources = createSceneObjectsTask.then([this]() {
 		auto pD3DDevice = m_deviceResources->GetD3DDevice();
+		HRESULT hr;
 
 		D3D11_TEXTURE2D_DESC shadowMapDesc;
 		ZeroMemory(&shadowMapDesc, sizeof(D3D11_TEXTURE2D_DESC));
@@ -220,10 +248,15 @@ void SceneRenderer::CreateDeviceDependentResources()
 		shadowMapDesc.Height = static_cast<UINT>(m_shadowMapDimension);
 		shadowMapDesc.Width = static_cast<UINT>(m_shadowMapDimension);
 
-		HRESULT hr = pD3DDevice->CreateTexture2D(
+		hr = pD3DDevice->CreateTexture2D(
 			&shadowMapDesc,
 			nullptr,
-			&m_shadowMap
+			&m_frontShadowMap
+			);
+		hr = pD3DDevice->CreateTexture2D(
+			&shadowMapDesc,
+			nullptr,
+			&m_backShadowMap
 			);
 
 		D3D11_DEPTH_STENCIL_VIEW_DESC depthStencilViewDesc;
@@ -239,15 +272,25 @@ void SceneRenderer::CreateDeviceDependentResources()
 		shaderResourceViewDesc.Texture2D.MipLevels = 1;
 
 		hr = pD3DDevice->CreateDepthStencilView(
-			m_shadowMap.Get(),
+			m_frontShadowMap.Get(),
 			&depthStencilViewDesc,
-			&m_shadowDepthView
+			&m_frontShadowDepthView
+			);
+		hr = pD3DDevice->CreateDepthStencilView(
+			m_backShadowMap.Get(),
+			&depthStencilViewDesc,
+			&m_backShadowDepthView
 			);
 
 		hr = pD3DDevice->CreateShaderResourceView(
-			m_shadowMap.Get(),
+			m_frontShadowMap.Get(),
 			&shaderResourceViewDesc,
-			&m_shadowResourceView
+			&m_frontShadowResourceView
+			);
+		hr = pD3DDevice->CreateShaderResourceView(
+			m_backShadowMap.Get(),
+			&shaderResourceViewDesc,
+			&m_backShadowResourceView
 			);
 
 		D3D11_SAMPLER_DESC comparisonSamplerDesc;
@@ -315,7 +358,7 @@ void SceneRenderer::CreateDeviceDependentResources()
 
 		D3D11_RASTERIZER_DESC shadowRenderStateDesc;
 		ZeroMemory(&shadowRenderStateDesc, sizeof(D3D11_RASTERIZER_DESC));
-		shadowRenderStateDesc.CullMode = D3D11_CULL_FRONT;
+		shadowRenderStateDesc.CullMode = D3D11_CULL_NONE;
 		shadowRenderStateDesc.FillMode = D3D11_FILL_SOLID;
 		shadowRenderStateDesc.DepthClipEnable = true;
 

@@ -95,13 +95,16 @@
     <ResourceCompile Include="SimpleScene.rc" />
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="ShadowVertexShader.hlsl">
+    <FxCompile Include="Content\ShadowMapVertexShader.hlsl">
       <Filter>Content</Filter>
     </FxCompile>
-    <FxCompile Include="ShadowPixelShader.hlsl">
+    <FxCompile Include="SceneVertexShader.hlsl">
       <Filter>Content</Filter>
     </FxCompile>
-    <FxCompile Include="Content\SimpleVertexShader.hlsl">
+    <FxCompile Include="ScenePixelShader.hlsl">
+      <Filter>Content</Filter>
+    </FxCompile>
+    <FxCompile Include="ShadowMapPixelShader.hlsl">
       <Filter>Content</Filter>
     </FxCompile>
   </ItemGroup>

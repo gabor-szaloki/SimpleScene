@@ -10,8 +10,8 @@ cbuffer WorldViewProjEyeConstantBuffer : register(b0)
 // Constant buffer that stores matrices for point light and light position
 cbuffer ViewProjectionConstantBuffer : register(b1)
 {
-	matrix lView;
-	matrix lProjection;
+	matrix lFrontView;
+	matrix lBackView;
 	float4 lPos;
 };
 
@@ -27,10 +27,11 @@ struct PixelShaderInput
 {
 	float4 pos : SV_POSITION;
 	float3 color : COLOR0;
-	float4 lightSpacePos : POSITION1;
+	float3 lightSpacePos : POSITION1;
 	float3 norm : NORMAL0;
 	float3 lRay : NORMAL1;
 	float3 view : NORMAL2;
+	float fLength : NORMAL3;
 };
 
 // Shader to do vertex processing for camera view position and light view position.
@@ -40,15 +41,18 @@ PixelShaderInput main(VertexShaderInput input)
 	float4 pos = float4(input.pos, 1.0f);
 
 	// Transform the vertex position into projected space.
-	float4 worldPos = mul(pos, world);
-	pos = mul(worldPos, view);
+	float3 worldPos = mul(pos, world);
+	pos = mul(float4(worldPos, 1.0f), view);
 	pos = mul(pos, projection);
 	output.pos = pos;
 
 	// Transform the vertex position into projected space from the POV of the light.
-	float4 lightSpacePos = mul(worldPos, lView);
-	lightSpacePos = mul(lightSpacePos, lProjection);
+	float3 lightSpacePos = mul(worldPos, lFrontView);
+	float fLength = length(lightSpacePos);
+	lightSpacePos /= fLength;
+	//lightSpacePos = mul(lightSpacePos, lProjection);
 	output.lightSpacePos = lightSpacePos;
+	output.fLength = fLength;
 
 	// Light ray
 	float3 lRay = lPos.xyz - worldPos.xyz;

@@ -25,6 +25,13 @@ namespace SimpleScene
 		DirectX::XMFLOAT4   pos;
 	};
 
+	struct LightViewsConstantBuffer
+	{
+		DirectX::XMFLOAT4X4 frontView;
+		DirectX::XMFLOAT4X4 backView;
+		DirectX::XMFLOAT4   pos;
+	};
+
 	// Used to send per-vertex data to the vertex shader.
 	struct VertexPositionColor
 	{

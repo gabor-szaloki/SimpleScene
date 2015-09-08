@@ -17,7 +17,7 @@ public:
 	XMFLOAT4 m_position;
 	XMFLOAT4 m_color;
 
-	ViewProjectionConstantBuffer m_viewProjectionBufferData;
-	Microsoft::WRL::ComPtr<ID3D11Buffer> m_viewProjectionBuffer;
+	LightViewsConstantBuffer m_viewsBufferData;
+	Microsoft::WRL::ComPtr<ID3D11Buffer> m_viewsBuffer;
 };
 

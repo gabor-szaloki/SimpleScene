@@ -127,9 +127,8 @@ void SceneObject::DrawDepthMap(std::shared_ptr<DX::DeviceResources> deviceResour
 		);
 
 	// Attach our pixel shader.
-	ID3D11PixelShader* nullPS = nullptr;
 	context->PSSetShader(
-		nullPS,
+		m_depthPixelShader.Get(),
 		nullptr,
 		0
 		);
@@ -196,6 +195,20 @@ void SceneObject::LoadPS(
 			fileData.size(),
 			nullptr,
 			&m_pixelShader
+			)
+		);
+}
+
+void SceneObject::LoadDepthPS(
+	std::shared_ptr<DX::DeviceResources> deviceResources,
+	const std::vector<byte>& fileData)
+{
+	DX::ThrowIfFailed(
+		deviceResources->GetD3DDevice()->CreatePixelShader(
+			&fileData[0],
+			fileData.size(),
+			nullptr,
+			&m_depthPixelShader
 			)
 		);
 }
