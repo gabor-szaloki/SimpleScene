@@ -1,18 +1,11 @@
 // Constant buffer that stores the 3 transformation matrices and the camera position
-cbuffer WorldViewProjEyeConstantBuffer : register(b0)
+cbuffer SceneVSConstantBuffer : register(b0)
 {
 	matrix world;
 	matrix view;
 	matrix projection;
-	float4 eyePos;
-};
-
-// Constant buffer that stores matrices for point light and light position
-cbuffer ViewProjectionConstantBuffer : register(b1)
-{
-	matrix lView;
-	matrix lProjection;
-	float4 lPos;
+	float4 lightPos;
+	float4 cameraPos;
 };
 
 // Per-vertex data used as input to the vertex shader.
@@ -26,11 +19,9 @@ struct VertexShaderInput
 struct PixelShaderInput
 {
 	float4 pos : SV_POSITION;
-	float3 color : COLOR0;
-	float4 lightSpacePos : POSITION1;
 	float3 norm : NORMAL0;
-	float3 lRay : NORMAL1;
-	float3 view : NORMAL2;
+	float3 lightRay : NORMAL1;
+	float3 viewRay : NORMAL2;
 };
 
 // Shader to do vertex processing for camera view position and light view position.
@@ -45,22 +36,15 @@ PixelShaderInput main(VertexShaderInput input)
 	pos = mul(pos, projection);
 	output.pos = pos;
 
-	// Transform the vertex position into projected space from the POV of the light.
-	float4 lightSpacePos = mul(worldPos, lView);
-	lightSpacePos = mul(lightSpacePos, lProjection);
-	output.lightSpacePos = lightSpacePos;
-
 	// Light ray
-	float3 lRay = lPos.xyz - worldPos.xyz;
-	output.lRay = lRay;
+	float3 lightRay = lightPos.xyz - worldPos.xyz;
+	output.lightRay = lightRay;
 
 	// Camera ray
-	output.view = eyePos.xyz - worldPos.xyz;
+	output.viewRay = cameraPos.xyz - worldPos.xyz;
 
 	// Transform the vertex normal into world space.
 	output.norm = mul(input.norm, world);
-
-	output.color = float3(1, 1, 1);
 
 	return output;
 }

@@ -42,12 +42,18 @@ void SceneRenderer::CreateWindowSizeDependentResources()
 
 	for (auto object : m_sceneObjects)
 	{
-		XMStoreFloat4x4(&object->m_constantBufferData.view, m_camera->getView());
-		
-		XMStoreFloat4x4(
-			&object->m_constantBufferData.projection, m_camera->getProjection());
+		XMStoreFloat4x4(&object->m_sceneVSConstantBufferData.view, m_camera->getView());		
+		XMStoreFloat4x4(&object->m_sceneVSConstantBufferData.projection, m_camera->getProjection());
+		XMStoreFloat4(&object->m_sceneVSConstantBufferData.cameraPosition, m_camera->getEye());
 
-		XMStoreFloat4(&object->m_constantBufferData.cameraPosition, m_camera->getEye());
+		object->m_shadowVSConstantBufferData.world = object->m_sceneVSConstantBufferData.world;
+		object->m_shadowVSConstantBufferData.lightPos = m_light->m_position;
+
+		for (int i = 0; i < 6; i++)
+		{
+			object->m_shadowGSConstantBufferData.lightViews[i] = m_light->m_views[i];
+		}
+		object->m_shadowGSConstantBufferData.projection = m_light->m_projection;
 	}
 }
 
@@ -59,9 +65,22 @@ void SceneRenderer::Update(DX::StepTimer const& timer)
 	m_light->UpdateBuffer();
 
 	m_camera->Update(timer, m_deviceResources);
+
 	for (auto object : m_sceneObjects)
 	{
-		XMStoreFloat4(&object->m_constantBufferData.cameraPosition, m_camera->getEye());
+		XMStoreFloat4x4(&object->m_sceneVSConstantBufferData.view, m_camera->getView());
+		XMStoreFloat4x4(&object->m_sceneVSConstantBufferData.projection, m_camera->getProjection());
+		XMStoreFloat4(&object->m_sceneVSConstantBufferData.cameraPosition, m_camera->getEye());
+		object->m_sceneVSConstantBufferData.lightPos = m_light->m_position;
+
+		object->m_shadowVSConstantBufferData.world = object->m_sceneVSConstantBufferData.world;
+		object->m_shadowVSConstantBufferData.lightPos = m_light->m_position;
+
+		for (int i = 0; i < 6; i++)
+		{
+			object->m_shadowGSConstantBufferData.lightViews[i] = m_light->m_views[i];
+		}
+		object->m_shadowGSConstantBufferData.projection = m_light->m_projection;
 	}
 }
 
@@ -101,8 +120,6 @@ void SceneRenderer::RenderShadowMap()
 	// Draw scene objects
 	for (int i = 0; i < m_sceneObjects.size(); i++)
 	{
-		m_sceneObjects[i]->m_constantBufferData.view = m_light->m_viewProjectionBufferData.view;
-		m_sceneObjects[i]->m_constantBufferData.projection = m_light->m_viewProjectionBufferData.projection;
 		m_sceneObjects[i]->DrawDepthMap(m_deviceResources);
 	}
 }
@@ -123,30 +140,13 @@ void SceneRenderer::RenderSceneWithShadows()
 	context->RSSetState(m_drawingRenderState.Get());
 
 	context->PSSetSamplers(0, 1, m_comparisonSampler.GetAddressOf());
+	context->PSSetSamplers(1, 1, m_linearSampler.GetAddressOf());
 	context->PSSetShaderResources(0, 1, m_shadowResourceView.GetAddressOf());
 	
-	// Prepare the constant buffer to send it to the graphics device.
-	context->UpdateSubresource(
-		m_light->m_viewProjectionBuffer.Get(),
-		0,
-		NULL,
-		&m_light->m_viewProjectionBufferData,
-		0,
-		0
-		);
-
-	context->VSSetConstantBuffers(
-		1,
-		1,
-		m_light->m_viewProjectionBuffer.GetAddressOf()
-		);
-
 	// Draw scene objects
-	for (auto object : m_sceneObjects)
+	for (int i = 0; i < m_sceneObjects.size(); i++)
 	{
-		XMStoreFloat4x4(&object->m_constantBufferData.view, m_camera->getView());
-		XMStoreFloat4x4(&object->m_constantBufferData.projection, m_camera->getProjection());
-		object->Draw(m_deviceResources);
+		m_sceneObjects[i]->Draw(m_deviceResources);
 	}
 }
 
@@ -154,14 +154,14 @@ void SceneRenderer::CreateDeviceDependentResources()
 {
 	// Initialize scene objects
 	Cube* cube = (Cube*)(m_sceneObjects[0]);
-	XMStoreFloat4x4(&cube->m_constantBufferData.world, 
+	XMStoreFloat4x4(&cube->m_sceneVSConstantBufferData.world,
 		XMMatrixTranspose(XMMatrixTranslation(-0.5f,0.0f,0.0f)) * 
 		XMMatrixScaling(0.5f, 1.0f, 1.5f));
 	Sphere* sphere = (Sphere*)(m_sceneObjects[1]);
-	XMStoreFloat4x4(&sphere->m_constantBufferData.world,
+	XMStoreFloat4x4(&sphere->m_sceneVSConstantBufferData.world,
 		XMMatrixTranspose(XMMatrixTranslation(0.5f, 0.0f, 0.0f)));
 	Room* room = (Room*)(m_sceneObjects[2]);
-	XMStoreFloat4x4(&room->m_constantBufferData.world,
+	XMStoreFloat4x4(&room->m_sceneVSConstantBufferData.world,
 		XMMatrixTranspose(XMMatrixTranslation(0.0f, 9.5f, 0.0f)) *
 		XMMatrixScaling(20, 20, 20));
 
@@ -171,15 +171,24 @@ void SceneRenderer::CreateDeviceDependentResources()
 	m_light->LoadLightViewProjectionBuffer(m_deviceResources);
 
 	// Load shaders asynchronously.
-	auto loadVSTask = DX::ReadDataAsync(L"ShadowVertexShader.cso");
-	auto loadDepthVSTask = DX::ReadDataAsync(L"SimpleVertexShader.cso");
-	auto loadPSTask = DX::ReadDataAsync(L"ShadowPixelShader.cso");
+	auto loadVSTask = DX::ReadDataAsync(L"SceneVertexShader.cso");
+	auto loadPSTask = DX::ReadDataAsync(L"ScenePixelShader.cso");
+	auto loadDepthVSTask = DX::ReadDataAsync(L"ShadowVertexShader.cso");
+	auto loadDepthGSTask = DX::ReadDataAsync(L"ShadowGeometryShader.cso");
+	auto loadDepthPSTask = DX::ReadDataAsync(L"ShadowPixelShader.cso");
 
-	// After the vertex shader file is loaded, create the shader and input layout.
+	// After the shader files are loaded, create the shaders
 	auto createVSTask = loadVSTask.then([this, cube](const std::vector<byte>& fileData) {
 		for (auto object : m_sceneObjects)
 		{
 			object->LoadVS(m_deviceResources, fileData);
+		}
+	});
+	auto createPSTask = loadPSTask.then([this, cube](const std::vector<byte>& fileData) {
+		for (auto object : m_sceneObjects)
+		{
+			object->LoadPS(m_deviceResources, fileData);
+			object->LoadCBs(m_deviceResources);
 		}
 	});
 	auto createDepthVSTask = loadDepthVSTask.then([this, cube](const std::vector<byte>& fileData) {
@@ -188,18 +197,22 @@ void SceneRenderer::CreateDeviceDependentResources()
 			object->LoadDepthVS(m_deviceResources, fileData);
 		}
 	});
-
-	// After the pixel shader file is loaded, create the shader and constant buffer.
-	auto createPSTask = loadPSTask.then([this, cube](const std::vector<byte>& fileData) {
+	auto createDepthGSTask = loadDepthGSTask.then([this, cube](const std::vector<byte>& fileData) {
 		for (auto object : m_sceneObjects)
 		{
-			object->LoadPS(m_deviceResources, fileData);
-			object->LoadCB(m_deviceResources);
+			object->LoadDepthGS(m_deviceResources, fileData);
 		}
 	});
+	auto createDepthPSTask = loadDepthPSTask.then([this, cube](const std::vector<byte>& fileData) {
+		for (auto object : m_sceneObjects)
+		{
+			object->LoadDepthPS(m_deviceResources, fileData);
+		}
+	});
+	
 
 	// Once shaders are loaded, create the mesh.
-	auto createSceneObjectsTask = (createPSTask && createVSTask && createDepthVSTask).then([this, cube]() {
+	auto createSceneObjectsTask = (createVSTask && createPSTask && createDepthVSTask && createDepthGSTask && createDepthPSTask).then([this, cube]() {
 		for (auto object : m_sceneObjects)
 		{
 			object->GenerateMesh(m_deviceResources);
@@ -209,8 +222,9 @@ void SceneRenderer::CreateDeviceDependentResources()
 	// Initializing resources needed for shadow mapping
 	auto createShadowMapResources = createSceneObjectsTask.then([this]() {
 		auto pD3DDevice = m_deviceResources->GetD3DDevice();
+		HRESULT result;
 
-		D3D11_TEXTURE2D_DESC shadowMapDesc;
+		/*D3D11_TEXTURE2D_DESC shadowMapDesc;
 		ZeroMemory(&shadowMapDesc, sizeof(D3D11_TEXTURE2D_DESC));
 		shadowMapDesc.Format = DXGI_FORMAT_R24G8_TYPELESS;
 		shadowMapDesc.MipLevels = 1;
@@ -248,11 +262,55 @@ void SceneRenderer::CreateDeviceDependentResources()
 			m_shadowMap.Get(),
 			&shaderResourceViewDesc,
 			&m_shadowResourceView
-			);
+			);*/
 
+		// Depth Stencil Buffer
+
+		D3D11_TEXTURE2D_DESC descDepthStencil;
+		ZeroMemory(&descDepthStencil, sizeof(D3D11_TEXTURE2D_DESC));
+		descDepthStencil.Width = static_cast<UINT>(m_shadowMapDimension);
+		descDepthStencil.Height = static_cast<UINT>(m_shadowMapDimension);
+		descDepthStencil.MipLevels = 1;
+		descDepthStencil.ArraySize = 6;
+		descDepthStencil.Format = DXGI_FORMAT_R32_TYPELESS;
+		descDepthStencil.SampleDesc.Count = 1;
+		descDepthStencil.SampleDesc.Quality = 0;
+		descDepthStencil.Usage = D3D11_USAGE_DEFAULT;
+		descDepthStencil.BindFlags = D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE;
+		descDepthStencil.CPUAccessFlags = 0;
+		descDepthStencil.MiscFlags = D3D11_RESOURCE_MISC_TEXTURECUBE;
+
+		result = pD3DDevice->CreateTexture2D(&descDepthStencil, NULL, &m_shadowMap);
+
+		// Depth Stencil View
+
+		D3D11_DEPTH_STENCIL_VIEW_DESC descDSV;
+		ZeroMemory(&descDSV, sizeof(D3D11_DEPTH_STENCIL_VIEW_DESC));
+		descDSV.Format = DXGI_FORMAT_D32_FLOAT;
+		descDSV.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2DARRAY;
+		descDSV.Flags = 0;
+		descDSV.Texture2DArray.MipSlice = 0;
+		descDSV.Texture2DArray.FirstArraySlice = 0;
+		descDSV.Texture2DArray.ArraySize = 6;
+
+		result = pD3DDevice->CreateDepthStencilView(m_shadowMap.Get(), &descDSV, &m_shadowDepthView);
+
+		// Shader Resource View
+
+		D3D11_SHADER_RESOURCE_VIEW_DESC descSRV;
+		ZeroMemory(&descSRV, sizeof(D3D11_SHADER_RESOURCE_VIEW_DESC));
+		descSRV.Format = DXGI_FORMAT_R32_FLOAT;
+		descSRV.ViewDimension = D3D11_SRV_DIMENSION_TEXTURECUBE;
+		descSRV.TextureCube.MostDetailedMip = 0;
+		descSRV.TextureCube.MipLevels = 1;
+
+		result = pD3DDevice->CreateShaderResourceView(m_shadowMap.Get(), &descSRV, &m_shadowResourceView);
+
+		// Comparison sampler
+		
 		D3D11_SAMPLER_DESC comparisonSamplerDesc;
 		ZeroMemory(&comparisonSamplerDesc, sizeof(D3D11_SAMPLER_DESC));
-		comparisonSamplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_BORDER;
+		/*comparisonSamplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_BORDER;
 		comparisonSamplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_BORDER;
 		comparisonSamplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_BORDER;
 		comparisonSamplerDesc.BorderColor[0] = 1.0f;
@@ -264,7 +322,20 @@ void SceneRenderer::CreateDeviceDependentResources()
 		comparisonSamplerDesc.MipLODBias = 0.f;
 		comparisonSamplerDesc.MaxAnisotropy = 0;
 		comparisonSamplerDesc.ComparisonFunc = D3D11_COMPARISON_LESS_EQUAL;
-		comparisonSamplerDesc.Filter = D3D11_FILTER_COMPARISON_MIN_MAG_MIP_LINEAR;
+		comparisonSamplerDesc.Filter = D3D11_FILTER_COMPARISON_MIN_MAG_MIP_LINEAR;*/
+		comparisonSamplerDesc.Filter = D3D11_FILTER_COMPARISON_MIN_MAG_MIP_POINT;
+		comparisonSamplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
+		comparisonSamplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
+		comparisonSamplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+		comparisonSamplerDesc.MipLODBias = 0;
+		comparisonSamplerDesc.MaxAnisotropy = 1;
+		comparisonSamplerDesc.ComparisonFunc = D3D11_COMPARISON_LESS_EQUAL;
+		comparisonSamplerDesc.BorderColor[0] = 0.0f;
+		comparisonSamplerDesc.BorderColor[1] = 0.0f;
+		comparisonSamplerDesc.BorderColor[2] = 0.0f;
+		comparisonSamplerDesc.BorderColor[3] = 0.0f;
+		comparisonSamplerDesc.MinLOD = 0.0f;
+		comparisonSamplerDesc.MaxLOD = 0.0f;
 		
 		DX::ThrowIfFailed(
 			pD3DDevice->CreateSamplerState(
@@ -272,6 +343,8 @@ void SceneRenderer::CreateDeviceDependentResources()
 				&m_comparisonSampler
 				)
 			);
+
+		// Linear sampler
 
 		D3D11_SAMPLER_DESC linearSamplerDesc;
 		ZeroMemory(&linearSamplerDesc, sizeof(D3D11_SAMPLER_DESC));
