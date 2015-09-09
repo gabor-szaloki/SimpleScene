@@ -60,8 +60,11 @@ void SceneRenderer::CreateWindowSizeDependentResources()
 // Called once per frame, rotates the cube and calculates the model and view matrices.
 void SceneRenderer::Update(DX::StepTimer const& timer)
 {
-	m_light->m_position.z = 3.0f * sinf(timer.GetTotalSeconds());
 	m_light->m_position.x = 3.0f * cosf(timer.GetTotalSeconds());
+	m_light->m_position.z = 3.0f * sinf(timer.GetTotalSeconds());
+	//m_light->m_position.x = 0.f;
+	//m_light->m_position.y = 0.2f;
+	//m_light->m_position.z = 3.0f * sinf(timer.GetTotalSeconds());
 	m_light->UpdateBuffer();
 
 	m_camera->Update(timer, m_deviceResources);
@@ -115,7 +118,7 @@ void SceneRenderer::RenderShadowMap()
 
 	// Set rendering state.
 	context->RSSetViewports(1, &m_shadowViewport);
-	context->RSSetState(m_shadowRenderState.Get());
+	//context->RSSetState(m_shadowRenderState.Get());
 
 	// Draw scene objects
 	for (int i = 0; i < m_sceneObjects.size(); i++)
@@ -137,10 +140,9 @@ void SceneRenderer::RenderSceneWithShadows()
 	
 	D3D11_VIEWPORT view = m_deviceResources->GetScreenViewport();
 	context->RSSetViewports(1, &view);
-	context->RSSetState(m_drawingRenderState.Get());
+	//context->RSSetState(m_drawingRenderState.Get());
 
 	context->PSSetSamplers(0, 1, m_comparisonSampler.GetAddressOf());
-	context->PSSetSamplers(1, 1, m_linearSampler.GetAddressOf());
 	context->PSSetShaderResources(0, 1, m_shadowResourceView.GetAddressOf());
 	
 	// Draw scene objects
@@ -224,46 +226,6 @@ void SceneRenderer::CreateDeviceDependentResources()
 		auto pD3DDevice = m_deviceResources->GetD3DDevice();
 		HRESULT result;
 
-		/*D3D11_TEXTURE2D_DESC shadowMapDesc;
-		ZeroMemory(&shadowMapDesc, sizeof(D3D11_TEXTURE2D_DESC));
-		shadowMapDesc.Format = DXGI_FORMAT_R24G8_TYPELESS;
-		shadowMapDesc.MipLevels = 1;
-		shadowMapDesc.ArraySize = 1;
-		shadowMapDesc.SampleDesc.Count = 1;
-		shadowMapDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_DEPTH_STENCIL;
-		shadowMapDesc.Height = static_cast<UINT>(m_shadowMapDimension);
-		shadowMapDesc.Width = static_cast<UINT>(m_shadowMapDimension);
-
-		HRESULT hr = pD3DDevice->CreateTexture2D(
-			&shadowMapDesc,
-			nullptr,
-			&m_shadowMap
-			);
-
-		D3D11_DEPTH_STENCIL_VIEW_DESC depthStencilViewDesc;
-		ZeroMemory(&depthStencilViewDesc, sizeof(D3D11_DEPTH_STENCIL_VIEW_DESC));
-		depthStencilViewDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
-		depthStencilViewDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
-		depthStencilViewDesc.Texture2D.MipSlice = 0;
-
-		D3D11_SHADER_RESOURCE_VIEW_DESC shaderResourceViewDesc;
-		ZeroMemory(&shaderResourceViewDesc, sizeof(D3D11_SHADER_RESOURCE_VIEW_DESC));
-		shaderResourceViewDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
-		shaderResourceViewDesc.Format = DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
-		shaderResourceViewDesc.Texture2D.MipLevels = 1;
-
-		hr = pD3DDevice->CreateDepthStencilView(
-			m_shadowMap.Get(),
-			&depthStencilViewDesc,
-			&m_shadowDepthView
-			);
-
-		hr = pD3DDevice->CreateShaderResourceView(
-			m_shadowMap.Get(),
-			&shaderResourceViewDesc,
-			&m_shadowResourceView
-			);*/
-
 		// Depth Stencil Buffer
 
 		D3D11_TEXTURE2D_DESC descDepthStencil;
@@ -310,20 +272,7 @@ void SceneRenderer::CreateDeviceDependentResources()
 		
 		D3D11_SAMPLER_DESC comparisonSamplerDesc;
 		ZeroMemory(&comparisonSamplerDesc, sizeof(D3D11_SAMPLER_DESC));
-		/*comparisonSamplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_BORDER;
-		comparisonSamplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_BORDER;
-		comparisonSamplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_BORDER;
-		comparisonSamplerDesc.BorderColor[0] = 1.0f;
-		comparisonSamplerDesc.BorderColor[1] = 1.0f;
-		comparisonSamplerDesc.BorderColor[2] = 1.0f;
-		comparisonSamplerDesc.BorderColor[3] = 1.0f;
-		comparisonSamplerDesc.MinLOD = 0.f;
-		comparisonSamplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
-		comparisonSamplerDesc.MipLODBias = 0.f;
-		comparisonSamplerDesc.MaxAnisotropy = 0;
-		comparisonSamplerDesc.ComparisonFunc = D3D11_COMPARISON_LESS_EQUAL;
-		comparisonSamplerDesc.Filter = D3D11_FILTER_COMPARISON_MIN_MAG_MIP_LINEAR;*/
-		comparisonSamplerDesc.Filter = D3D11_FILTER_COMPARISON_MIN_MAG_MIP_POINT;
+		comparisonSamplerDesc.Filter = D3D11_FILTER_COMPARISON_MIN_MAG_MIP_LINEAR;
 		comparisonSamplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
 		comparisonSamplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
 		comparisonSamplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
@@ -341,27 +290,6 @@ void SceneRenderer::CreateDeviceDependentResources()
 			pD3DDevice->CreateSamplerState(
 				&comparisonSamplerDesc,
 				&m_comparisonSampler
-				)
-			);
-
-		// Linear sampler
-
-		D3D11_SAMPLER_DESC linearSamplerDesc;
-		ZeroMemory(&linearSamplerDesc, sizeof(D3D11_SAMPLER_DESC));
-		linearSamplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
-		linearSamplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
-		linearSamplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
-		linearSamplerDesc.MinLOD = 0;
-		linearSamplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
-		linearSamplerDesc.MipLODBias = 0.f;
-		linearSamplerDesc.MaxAnisotropy = 0;
-		linearSamplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
-		linearSamplerDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
-
-		DX::ThrowIfFailed(
-			pD3DDevice->CreateSamplerState(
-				&linearSamplerDesc,
-				&m_linearSampler
 				)
 			);
 
@@ -388,7 +316,7 @@ void SceneRenderer::CreateDeviceDependentResources()
 
 		D3D11_RASTERIZER_DESC shadowRenderStateDesc;
 		ZeroMemory(&shadowRenderStateDesc, sizeof(D3D11_RASTERIZER_DESC));
-		shadowRenderStateDesc.CullMode = D3D11_CULL_FRONT;
+		shadowRenderStateDesc.CullMode = D3D11_CULL_BACK;
 		shadowRenderStateDesc.FillMode = D3D11_FILL_SOLID;
 		shadowRenderStateDesc.DepthClipEnable = true;
 

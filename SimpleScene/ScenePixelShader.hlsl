@@ -9,7 +9,6 @@ struct PixelShaderInput
 
 TextureCube shadowMap : register(t0);
 SamplerComparisonState shadowSampler : register(s0);
-SamplerState linearSampler : register(s1);
 
 float3 DplusS(float3 N, float3 L, float NdotL, float3 view, float distance);
 
@@ -44,7 +43,7 @@ float4 main(PixelShaderInput input) : SV_TARGET
 	// This is an approximation of epsilon * tan(acos(saturate(NdotL))):
 	float margin = acos(saturate(NdotL));
 	// The offset can be slightly smaller with smoother shadow edges.
-	float epsilon = 0.000006 / margin;
+	float epsilon = 0.00001 / margin;
 	// Clamp epsilon to a fixed range so it doesn't go overboard.
 	epsilon = clamp(epsilon, 0, 0.1);
 
