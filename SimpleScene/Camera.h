@@ -19,15 +19,11 @@ public:
 	inline XMVECTOR getUp() { return XMLoadFloat4(&up); }
 	inline void setUp(XMFLOAT4 newUp) { this->up = newUp; }
 	inline XMVECTOR getDirection() { return XMVector3Normalize(getAt() - getEye()); }
-	inline XMVECTOR getPlaneDirection() { return XMVector3Normalize(XMVectorSet(at.x - eye.x, 0, at.z - eye.z, 1)); }
 	inline XMVECTOR getMovementDir() { return XMLoadFloat4(&movementDir); }
 	inline void setMovementDir(XMVECTOR value) { XMStoreFloat4(&this->movementDir, value); }
 	XMMATRIX getWorld();
 	XMMATRIX getView();
 	XMMATRIX getProjection();
-	inline float getPitch() { return atan((at.y - eye.y) / (at.x - eye.x)); }
-	inline float getYaw() { return 0.5 * atan((at.z - eye.z) / (at.x - eye.x)); }
-	inline float getRoll() { return 0.f; }
 
 	void Update(DX::StepTimer const& timer,
 		std::shared_ptr<DX::DeviceResources>& deviceResources);
