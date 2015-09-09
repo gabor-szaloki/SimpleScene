@@ -24,18 +24,14 @@ float4 main(PixelShaderInput input) : SV_TARGET
 {
 	const float3 ambient = float3(0.1f, 0.1f, 0.1f);
 	const float4 diffuseColor = float4(1, 1, 1, 1);
+	const float lightRange = 30.f;
 
 	// NdotL for shadow offset, lighting.
 	float3 N = normalize(input.norm);
 	float3 L = normalize(input.lightRay);
-	float distance = length(input.lightRay);
 	float NdotL = dot(N, L);
 
-
 	float pixelDepth = length(input.lightRay);
-
-	float lighting = 1;
-
 
 	// Use an offset value to mitigate shadow artifacts due to imprecise 
 	// floating-point values (shadow acne).
@@ -47,13 +43,11 @@ float4 main(PixelShaderInput input) : SV_TARGET
 	// Clamp epsilon to a fixed range so it doesn't go overboard.
 	epsilon = clamp(epsilon, 0, 0.1);
 
-	//float shadowMapTexel = shadowMap.Sample(linearSampler, -normalize(input.lightRay)).r;
-	//lighting = abs(shadowMapTexel - pixelDepth);
-
+	float lighting = 1;
 	lighting = float(shadowMap.SampleCmpLevelZero(
 		shadowSampler,
 		-normalize(input.lightRay),
-		pixelDepth/30.0f + epsilon
+		pixelDepth / lightRange + epsilon
 		)
 		);
 
@@ -64,15 +58,14 @@ float4 main(PixelShaderInput input) : SV_TARGET
 	else if (lighting < 1.0f)
 	{
 		// Blends the shadow area into the lit area.
-		float3 light = lighting * (ambient + DplusS(N, L, NdotL, input.viewRay, distance));
+		float3 light = lighting * (ambient + DplusS(N, L, NdotL, input.viewRay, pixelDepth));
 		float3 shadow = (1.0f - lighting) * ambient;
 		return float4(diffuseColor * (light + shadow), 1.f);
 	}
 	
 
-	float4 finalColor = float4(diffuseColor * (ambient + DplusS(N, L, NdotL, input.viewRay, distance)), 1.f);
+	float4 finalColor = float4(diffuseColor * (ambient + DplusS(N, L, NdotL, input.viewRay, pixelDepth)), 1.f);
 	return finalColor;
-	//return float4(1,1,1,1);
 }
 
 // Performs very basic Phong lighting for example purposes.

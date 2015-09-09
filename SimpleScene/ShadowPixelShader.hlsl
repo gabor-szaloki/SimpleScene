@@ -7,5 +7,6 @@ struct PixelShaderInput
 
 float main(PixelShaderInput input) : SV_Depth
 {
-	return length(input.worldLightDir) / 30.0f;
+	const float lightRange = 30.f;
+	return length(input.worldLightDir) / lightRange;
 }
