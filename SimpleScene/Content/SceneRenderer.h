@@ -33,7 +33,6 @@ namespace SimpleScene
 		Microsoft::WRL::ComPtr<ID3D11DepthStencilView>   m_shadowDepthView;
 		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_shadowResourceView;
 		Microsoft::WRL::ComPtr<ID3D11SamplerState>       m_comparisonSampler;
-		Microsoft::WRL::ComPtr<ID3D11SamplerState>       m_linearSampler;
 		Microsoft::WRL::ComPtr<ID3D11RasterizerState>    m_shadowRenderState;
 		Microsoft::WRL::ComPtr<ID3D11RasterizerState>    m_drawingRenderState;
 		D3D11_VIEWPORT                                   m_shadowViewport;
