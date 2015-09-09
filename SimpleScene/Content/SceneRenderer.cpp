@@ -118,7 +118,6 @@ void SceneRenderer::RenderShadowMap()
 
 	// Set rendering state.
 	context->RSSetViewports(1, &m_shadowViewport);
-	//context->RSSetState(m_shadowRenderState.Get());
 
 	// Draw scene objects
 	for (int i = 0; i < m_sceneObjects.size(); i++)
@@ -140,7 +139,6 @@ void SceneRenderer::RenderSceneWithShadows()
 	
 	D3D11_VIEWPORT view = m_deviceResources->GetScreenViewport();
 	context->RSSetViewports(1, &view);
-	//context->RSSetState(m_drawingRenderState.Get());
 
 	context->PSSetSamplers(0, 1, m_comparisonSampler.GetAddressOf());
 	context->PSSetShaderResources(0, 1, m_shadowResourceView.GetAddressOf());
@@ -299,33 +297,6 @@ void SceneRenderer::CreateDeviceDependentResources()
 		m_shadowViewport.Width = m_shadowMapDimension;
 		m_shadowViewport.MinDepth = 0.f;
 		m_shadowViewport.MaxDepth = 1.f;
-
-		// Init rasterizer states
-		D3D11_RASTERIZER_DESC drawingRenderStateDesc;
-		ZeroMemory(&drawingRenderStateDesc, sizeof(D3D11_RASTERIZER_DESC));
-		drawingRenderStateDesc.CullMode = D3D11_CULL_BACK;
-		drawingRenderStateDesc.FillMode = D3D11_FILL_SOLID;
-		drawingRenderStateDesc.DepthClipEnable = true; // Feature level 9_1 requires DepthClipEnable == true
-
-		DX::ThrowIfFailed(
-			pD3DDevice->CreateRasterizerState(
-				&drawingRenderStateDesc,
-				&m_drawingRenderState
-				)
-			);
-
-		D3D11_RASTERIZER_DESC shadowRenderStateDesc;
-		ZeroMemory(&shadowRenderStateDesc, sizeof(D3D11_RASTERIZER_DESC));
-		shadowRenderStateDesc.CullMode = D3D11_CULL_BACK;
-		shadowRenderStateDesc.FillMode = D3D11_FILL_SOLID;
-		shadowRenderStateDesc.DepthClipEnable = true;
-
-		DX::ThrowIfFailed(
-			pD3DDevice->CreateRasterizerState(
-				&shadowRenderStateDesc,
-				&m_shadowRenderState
-				)
-			);
 
 	});
 
